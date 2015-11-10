@@ -3,9 +3,9 @@ import org.json.JSONObject;
 
 public class ByeMessage extends Message {
 	
-	public ByeMessage(String nickname) 
+	public ByeMessage() 
 	{
-		super(nickname);
+		super();
 	}
 
 	@Override
@@ -13,7 +13,6 @@ public class ByeMessage extends Message {
 	{
 		JSONObject obj = new JSONObject();
 		obj.put("type", Message.MESSAGE_TYPE_BYE);
-		obj.put("nickname", this.getNickname());
 		return obj.toString();
 	}
 	
