@@ -37,18 +37,17 @@ public class TCPStackTest {
 			
 			@Override
 			public void onNotifyProgress(InetAddress source, int progress) {
+
+			}
+			
+			@Override
+			public void onNotifyEnd(InetAddress source) {
 				try {
 					System.out.println(out.toString("UTF-8"));
 				} catch (UnsupportedEncodingException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				
-			}
-			
-			@Override
-			public void onNotifyEnd(InetAddress source) {
-				// TODO Auto-generated method stub	
 				
 			}
 		});
