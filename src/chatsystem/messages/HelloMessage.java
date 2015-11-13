@@ -1,4 +1,4 @@
-package chatsystem;
+package chatsystem.messages;
 import org.json.*;
 
 public class HelloMessage extends Message {
@@ -26,11 +26,11 @@ public class HelloMessage extends Message {
 	/* ------------------------------------------------------------------------
 	 * Getters / Setters
 	 * ----------------------------------------------------------------------*/
-	private Boolean getReqReply() {
+	public Boolean getReqReply() {
 		return reqReply;
 	}
 
-	private void setReqReply(Boolean reqReply) {
+	public void setReqReply(Boolean reqReply) {
 		this.reqReply = reqReply;
 	}
 	

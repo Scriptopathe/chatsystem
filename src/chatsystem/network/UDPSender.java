@@ -1,8 +1,10 @@
-package chatsystem;
+package chatsystem.network;
 import java.util.*;
 import java.io.IOException;
 import java.net.*;
 import java.nio.charset.Charset;
+
+import chatsystem.messages.Message;
 /*
  * TODO pense bête
  * Pour le fichier, le FileMessage et lancera un thread pour chaque connection TCP.
@@ -19,18 +21,10 @@ public class UDPSender
 	/* ------------------------------------------------------------------------
 	 * Methods
 	 * ----------------------------------------------------------------------*/
-	public UDPSender(int port)
+	public UDPSender(int port) throws SocketException 
 	{
 		this.port = port;
-		try 
-		{
-			socket = new DatagramSocket();
-		}
-		catch (SocketException e) 
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		this.socket = new DatagramSocket();
 	}	
 	
 	/**

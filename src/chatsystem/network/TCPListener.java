@@ -1,8 +1,10 @@
-package chatsystem;
+package chatsystem.network;
 
 import java.io.*;
 import java.util.*;
 import java.net.*;
+
+import chatsystem.model.UserList;
 
 public class TCPListener extends Thread
 {
@@ -31,7 +33,7 @@ public class TCPListener extends Thread
 		return null;
 	}
 	
-	@Override
+	
 	public void run()
 	{
 		while(true)
@@ -48,4 +50,10 @@ public class TCPListener extends Thread
 			}
 		}
 	}
+	
+	
+	
+
+	
+	
 }

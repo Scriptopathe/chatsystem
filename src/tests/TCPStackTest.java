@@ -3,10 +3,12 @@ package tests;
 import java.net.*;
 import java.io.*;
 
-import chatsystem.TCPListener;
-import chatsystem.TCPReceiver;
-import chatsystem.TCPReceiverListener;
-import chatsystem.TCPSender;
+import chatsystem.network.TCPListener;
+import chatsystem.network.TCPReceiver;
+import chatsystem.network.TCPReceiverListener;
+import chatsystem.network.TCPSender;
+
+
 
 public class TCPStackTest {
 

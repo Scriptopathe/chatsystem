@@ -1,4 +1,4 @@
-package chatsystem;
+package chatsystem.network;
 import java.io.IOException;
 import java.net.*;
 import java.util.*;
@@ -14,6 +14,7 @@ public class UDPReceiver extends Thread
 	private DatagramSocket sock;
 	private List<UDPReceiverListener> listeners;
 	private boolean isOK;
+	
 	/* ------------------------------------------------------------------------
 	 * Methods
 	 * ----------------------------------------------------------------------*/
@@ -40,7 +41,6 @@ public class UDPReceiver extends Thread
 	        try 
 	        {
 				sock.receive(data);
-				
 				InetAddress srcAddr = data.getAddress();
 				String str = new String(data.getData(), 0, data.getLength(), Charset.forName("UTF-8"));
 				this.notifyListeners(srcAddr, str);
@@ -54,10 +54,12 @@ public class UDPReceiver extends Thread
 	}
 	
 	
+	
 	public void addListener(UDPReceiverListener l)
 	{
 		this.listeners.add(l);
 	}
+	
 	
 	private void notifyListeners(InetAddress source, String message)
 	{

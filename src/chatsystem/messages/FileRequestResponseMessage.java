@@ -1,4 +1,4 @@
-package chatsystem;
+package chatsystem.messages;
 import org.json.*;
 
 

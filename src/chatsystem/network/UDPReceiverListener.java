@@ -1,4 +1,4 @@
-package chatsystem;
+package chatsystem.network;
 import java.net.InetAddress;
 
 
