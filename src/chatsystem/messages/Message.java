@@ -33,7 +33,6 @@ public abstract class Message {
 	 */
 	public static Message createFromJSON(String jsonstr)
 	{
-		System.out.println("[MESSAGE.java] Creation message : " + jsonstr);
 		JSONObject jobj = new JSONObject(jsonstr);
 		int type = jobj.getInt("type");
 		Message msg;

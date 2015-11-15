@@ -6,6 +6,12 @@ import java.net.*;
 
 import chatsystem.model.UserList;
 
+/**
+ * TCPListener enregistre les connexions entrantes, et permet de les récupérer
+ * via getSocket().
+ * @author scriptopathe
+ *
+ */
 public class TCPListener extends Thread
 {
 	private int sourcePort;
@@ -19,12 +25,21 @@ public class TCPListener extends Thread
 		this.acceptedSockets = new HashMap<String, Socket>();
 	}
 	
+	/**
+	 * Transforme une addresse IP en un ID qui permet de l'identifier
+	 * dans la hashmap.
+	 */
 	private String toId(InetAddress addr)
 	{
 		String addname = addr.toString();
 		return addname.split("/")[1];
 	}
 	
+	/**
+	 * Obtient le socket enregistré correspondant à l'addresse IP donnée.
+	 * @return le socket correspondant à l'IP source donnée s'il a été enregistré
+	 * null sinon.
+	 */
 	public Socket getSocket(InetAddress addr)
 	{
 		String addrname = toId(addr);

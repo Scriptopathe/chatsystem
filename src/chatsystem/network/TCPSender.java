@@ -4,12 +4,23 @@ import java.io.*;
 import java.net.*;
 
 
-
+/**
+ * Permet l'envoi de données depuis un flux d'entrée vers un socket.
+ * @author scriptopathe
+ *
+ */
 public class TCPSender extends Thread {
 	private int dstPort;
 	private InetAddress addr;
 	private InputStream stream;
 	
+	/**
+	 * Crée une nouvelle instance de TCPSender à partir d'une adresse, d'un port et
+	 * d'un flux d'entrée.
+	 * @param port port sur lequel envoyer les données.
+	 * @param addr addresse vers laquelle envoyer les données.
+	 * @param stream stream duquel seront lues les données à écrire dans le socket.
+	 */
 	public TCPSender(int port, InetAddress addr, InputStream stream)
 	{
 		this.dstPort = port;

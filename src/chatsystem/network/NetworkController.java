@@ -6,7 +6,6 @@ import java.net.SocketException;
 
 import chatsystem.controler.MainController;
 import chatsystem.messages.Message;
-
 /**
  * Classe façade pour les services réseaux.
  */
@@ -47,7 +46,6 @@ public class NetworkController implements UDPReceiverListener
 	 */
 	public void onMessageReceived(InetAddress source, String message) 
 	{
-		System.out.println("[NetworkControler] Message received [from " + source + "]: " + message);
 		Message msg = Message.createFromJSON(message);
 		mainController.processMessage(source, msg);
 	}

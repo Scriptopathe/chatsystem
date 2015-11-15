@@ -23,11 +23,11 @@ public class FileRequestMessage extends Message{
 	/* ------------------------------------------------------------------------
 	 * Getters / Setters
 	 * ----------------------------------------------------------------------*/
-	private String getFileName() {
+	public String getFileName() {
 		return fileName;
 	}
 
-	private void setFileName(String fileName) {
+	public void setFileName(String fileName) {
 		this.fileName = fileName;
 	}
 	
