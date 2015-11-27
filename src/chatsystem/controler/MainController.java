@@ -5,6 +5,7 @@ import java.net.*;
 import java.util.*;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import tests.MainControllerTest;
+import chatsystem.gui.GuiListener;
 import chatsystem.messages.*;
 import chatsystem.model.*;
 import chatsystem.network.*;
@@ -13,7 +14,7 @@ import chatsystem.network.*;
  * Contrôleur principal de l'application ChatSystem.
  * Il agit entre l'interface graphique et le controleur réseau.
  */
-public class MainController 
+public class MainController implements GuiListener
 {
 	/* ------------------------------------------------------------------------
 	 * Variables
@@ -196,4 +197,23 @@ public class MainController
 		for(MainControllerListener l : listeners) l.OnLog(text, isError);
 	}
 	public void addListener(MainControllerListener l) { listeners.add(l); }
+	
+	/* ------------------------------------------------------------------------
+	 * Gui Listener
+	 * --------------------------------------------------------------------- */
+	@Override
+	public void onConnect(String username) {
+		this.connect(username);
+	}
+
+
+	@Override
+	public void onDisconnect() {
+		this.disconnect();
+	}
+
+	@Override
+	public void onSendMessage(User usr, String message) {
+		this.sendTextMessage(usr, message);
+	}
 }

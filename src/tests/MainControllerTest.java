@@ -9,10 +9,9 @@ import chatsystem.gui.*;
 public class MainControllerTest {
 	public static void main(String[] args)
 	{
-		ChatGUI g = new ChatGUI();
 		
 		MainController ctrl1 = new MainController();
-		ctrl1.connect("Benard");
+		ChatGUI g = new ChatGUI(ctrl1);
 		ctrl1.addListener(new MainControllerListener() {
 			
 			@Override
@@ -52,6 +51,8 @@ public class MainControllerTest {
 				
 			}
 		});
+
+		ctrl1.connect("Benard");
 		while(true)
 		{
 			Scanner s = new Scanner(System.in);

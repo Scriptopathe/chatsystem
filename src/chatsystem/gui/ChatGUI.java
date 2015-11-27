@@ -2,44 +2,47 @@ package chatsystem.gui;
 
 import java.awt.EventQueue;
 
-import javax.swing.JFrame;
 import java.awt.Component;
-import javax.swing.Box;
 import java.awt.BorderLayout;
-import javax.swing.JSplitPane;
-import javax.swing.JTextArea;
-import javax.swing.JList;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.swing.*;
 import javax.swing.border.TitledBorder;
-import javax.swing.AbstractListModel;
-import javax.swing.JLabel;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JMenu;
 
-public class ChatGUI {
+import chatsystem.controler.MainController;
+import chatsystem.controler.MainControllerListener;
+import chatsystem.model.User;
 
+public class ChatGUI implements MainControllerListener, ActionListener, MouseListener
+{
 	private JFrame frame;
-
-	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					ChatGUI window = new ChatGUI();
-					window.frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-	}
-
+	private JList<User> connectedUserList;
+	private List<User> internalUserList;
+	private JButton createConversationButton;
+	private JList<ConversationGUI> conversationsList;
+	private List<ConversationGUI> internalConversationsList;
+	private List<GuiListener> listeners;
+	private JMenuItem mntmDisconnect;
+	private MainController mainController;
 	/**
 	 * Create the application.
 	 */
-	public ChatGUI() {
+	public ChatGUI(MainController ctrl) 
+	{
+		internalUserList = new ArrayList<User>();
+		internalConversationsList = new ArrayList<ConversationGUI>();
+		mainController = ctrl;
+		listeners = new ArrayList<GuiListener>();
+		
+		ctrl.addListener(this);
+		this.addListener(ctrl);
 		initialize();
 	}
 
@@ -56,31 +59,40 @@ public class ChatGUI {
 		JSplitPane splitPane = new JSplitPane();
 		frame.getContentPane().add(splitPane, BorderLayout.CENTER);
 		
-		JList userlist = new JList();
-		userlist.setModel(new AbstractListModel() {
-			String[] values = new String[] {"Utilisateur 1", "Utilisateur 2"};
+		connectedUserList = new JList<User>();
+		connectedUserList.setModel(new AbstractListModel<User>() {
 			public int getSize() {
-				return values.length;
+				return internalUserList.size();
 			}
-			public Object getElementAt(int index) {
-				return values[index];
+			public User getElementAt(int index) {
+				return internalUserList.get(index);
 			}
 		});
-		userlist.setBorder(new TitledBorder(null, "", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-		splitPane.setLeftComponent(userlist);
+		connectedUserList.setBorder(new TitledBorder(null, "", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		splitPane.setLeftComponent(connectedUserList);
 		
 		JSplitPane splitPane_1 = new JSplitPane();
 		splitPane_1.setOrientation(JSplitPane.VERTICAL_SPLIT);
 		splitPane.setRightComponent(splitPane_1);
 		
-		JTextArea messageTextArea = new JTextArea();
-		messageTextArea.setEditable(false);
-		messageTextArea.setText("[User1] : Message 1\n[User2] : Message 2");
-		splitPane_1.setLeftComponent(messageTextArea);
+
+		createConversationButton = new JButton("Creer une conversation.");
+		createConversationButton.addActionListener(this);
+		splitPane_1.setLeftComponent(createConversationButton);
 		
-		JTextArea inputTextArea = new JTextArea();
-		inputTextArea.setText("Le message que je tape");
-		splitPane_1.setRightComponent(inputTextArea);
+		// Liste des conversations.
+		conversationsList = new JList<ConversationGUI>();
+		conversationsList.setModel(new AbstractListModel<ConversationGUI>() {
+			public int getSize() {
+				return internalConversationsList.size();
+			}
+			public ConversationGUI getElementAt(int index) {
+				return internalConversationsList.get(index);
+			}
+		});
+		conversationsList.addMouseListener(this);
+		
+		splitPane_1.setRightComponent(conversationsList);
 		
 		JLabel statusbar = new JLabel("Statut : Prêt.");
 		frame.getContentPane().add(statusbar, BorderLayout.SOUTH);
@@ -91,11 +103,155 @@ public class ChatGUI {
 		JMenu mnFile = new JMenu("File");
 		menuBar.add(mnFile);
 		
-		JMenuItem mntmConnect = new JMenuItem("Connect");
-		mnFile.add(mntmConnect);
+		mntmDisconnect = new JMenuItem("Disconnect");
+		mntmDisconnect.addActionListener(this);
 		
-		JMenuItem mntmDisconnect = new JMenuItem("Disconnect");
 		mnFile.add(mntmDisconnect);
 		frame.setVisible(true);
+	}
+	/* ------------------------------------------------------------------------
+	 * MainControllerListener
+	 * --------------------------------------------------------------------- */
+	@Override
+	public void OnUserConnected(User usr) {
+		// TODO Auto-generated method stub
+		internalUserList.add(usr);
+		connectedUserList.updateUI();
+	}
+
+	@Override
+	public void OnUserDisconnected(User usr) {
+		// TODO Auto-generated method stub
+		internalUserList.remove(usr);
+		connectedUserList.updateUI();
+	}
+
+	@Override
+	public void OnMessageReceived(User usr, String textMessage) {
+		// TODO si on veut afficher un truc
+	}
+
+	@Override
+	public void OnFileRequest(User usr, String filename) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void OnFileTransferEnded(User usr, String filename) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void OnLog(String text, boolean isError) {
+		// TODO Auto-generated method stub
+		
+	}
+	/* ------------------------------------------------------------------------
+	 * Gui Listener
+	 * --------------------------------------------------------------------- */
+	
+	private void notifyConnect(String username) {
+		for(GuiListener l : listeners) l.onConnect(username);
+	}
+	private void notifyDisconnect() {
+		for(GuiListener l : listeners) l.onDisconnect();
+	}
+	private void notifySendMessage(User usr, String message) {
+		for(GuiListener l : listeners) l.onSendMessage(usr, message);
+	}
+	
+	public void addListener(GuiListener l) { listeners.add(l); }
+
+
+	/* ------------------------------------------------------------------------
+	 * Action Listener
+	 * --------------------------------------------------------------------- */
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		// TODO Auto-generated method stub
+		if(e.getSource() == this.mntmDisconnect)
+		{
+			notifyDisconnect();
+		}
+		else if(e.getSource() == this.createConversationButton)
+		{
+			List<User> connectedUsers = this.connectedUserList.getSelectedValuesList();
+			ConversationGUI c = null;
+			for(ConversationGUI conv : this.internalConversationsList)
+			{
+				boolean isOK = true;
+				// On vérifie que la conversation n'existe pas déja.
+				if(connectedUsers.size() == conv.getUserAdapters().size())
+				{
+					for(UserAdapter userAdapter : conv.getUserAdapters())
+					{
+						if(!connectedUsers.contains(userAdapter.getUser()))
+						{
+							isOK = false;
+						}
+					}
+				}
+				else
+					isOK = false;
+				
+				if(isOK)
+					c = conv;
+			}
+			
+			
+			// Si la conversation existe : on l'affiche
+			if(c != null)
+			{
+				c.setVisible(true);
+			}
+			else
+			{
+				// Sinon on la crée.
+				List<UserAdapter> adapters = new ArrayList<UserAdapter>();
+				for(User u : connectedUsers)
+					adapters.add(new UserAdapter(u));
+				
+				c = new ConversationGUI(adapters);
+				mainController.addListener(c);
+				c.addListener(mainController);
+				this.internalConversationsList.add(c);
+				this.conversationsList.updateUI();
+			}
+		}
+	}
+
+	/* ------------------------------------------------------------------------
+	 * Mouse Listener
+	 * --------------------------------------------------------------------- */
+	@Override
+	public void mouseClicked(MouseEvent e) {
+		// TODO Auto-generated method stub
+		this.conversationsList.getSelectedValue().setVisible(true);
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseExited(MouseEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mousePressed(MouseEvent arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent arg0) {
+		// TODO Auto-generated method stub
+		
 	}
 }
