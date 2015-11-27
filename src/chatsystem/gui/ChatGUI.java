@@ -228,7 +228,8 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		// TODO Auto-generated method stub
-		this.conversationsList.getSelectedValue().setVisible(true);
+		if(this.conversationsList.getSelectedValue() != null)
+			this.conversationsList.getSelectedValue().setVisible(true);
 	}
 
 	@Override
