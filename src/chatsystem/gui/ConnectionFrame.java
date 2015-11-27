@@ -12,6 +12,8 @@ import javax.swing.JTextArea;
 import javax.swing.JButton;
 
 import chatsystem.controler.MainController;
+import chatsystem.controler.MainControllerListener;
+import chatsystem.model.User;
 
 public class ConnectionFrame extends JFrame implements ActionListener {
 
@@ -46,6 +48,46 @@ public class ConnectionFrame extends JFrame implements ActionListener {
 		MainController ctrl1 = new MainController();
 		ChatGUI g = new ChatGUI(ctrl1);
 		ctrl1.connect(usernameTextarea.getText());
+		ctrl1.addListener(new MainControllerListener() {
+			
+			@Override
+			public void OnUserDisconnected(User usr) {
+				System.out.println("User " + usr + " disconnected");
+				
+			}
+			
+			@Override
+			public void OnUserConnected(User usr) {
+				// TODO Auto-generated method stub
+				System.out.println("User " + usr + " connected");
+				
+			}
+			
+			@Override
+			public void OnMessageReceived(User usr, String textMessage) {
+				// TODO Auto-generated method stub
+				System.out.println("User " + usr + " says : " + textMessage);
+			}
+			
+			@Override
+			public void OnLog(String text, boolean isError) {
+				// TODO Auto-generated method stub
+				System.out.println("[CtrlLog] " + text);
+			}
+			
+			@Override
+			public void OnFileTransferEnded(User usr, String filename) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void OnFileRequest(User usr, String filename) {
+				// TODO Auto-generated method stub
+				
+			}
+		});
+
 		this.dispose();
 	}
 }
