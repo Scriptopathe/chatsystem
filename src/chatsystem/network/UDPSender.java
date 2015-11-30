@@ -39,4 +39,8 @@ public class UDPSender
 		byte[] buf = msgStr.getBytes(Charset.forName("UTF-8"));
 		socket.send(new DatagramPacket(buf, buf.length, addr, this.port));
 	}
+
+	public void dispose() {
+		this.socket.close();
+	}
 }

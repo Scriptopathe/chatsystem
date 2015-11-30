@@ -4,7 +4,6 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-import tests.MainControllerTest;
 import chatsystem.gui.GuiListener;
 import chatsystem.messages.*;
 import chatsystem.model.*;
@@ -150,6 +149,7 @@ public class MainController implements GuiListener
 		try 
 		{
 			netControler.sendMessage(InetAddress.getByName("255.255.255.255"), new ByeMessage());
+			netControler.dispose();
 		} 
 		catch (IOException e) 
 		{
@@ -196,7 +196,9 @@ public class MainController implements GuiListener
 	private void notifyLog(String text, boolean isError) {
 		for(MainControllerListener l : listeners) l.OnLog(text, isError);
 	}
-	public void addListener(MainControllerListener l) { listeners.add(l); }
+	public void addListener(MainControllerListener l) { 
+		listeners.add(l); 
+	}
 	
 	/* ------------------------------------------------------------------------
 	 * Gui Listener

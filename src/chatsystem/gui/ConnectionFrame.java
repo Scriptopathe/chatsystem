@@ -4,6 +4,8 @@ import java.awt.BorderLayout;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -15,10 +17,11 @@ import chatsystem.controler.MainController;
 import chatsystem.controler.MainControllerListener;
 import chatsystem.model.User;
 
-public class ConnectionFrame extends JFrame implements ActionListener {
+public class ConnectionFrame extends JFrame implements ActionListener, KeyListener {
 
 	private JPanel contentPane;
 	private JTextArea usernameTextarea;
+	
 	/**
 	 * Create the frame.
 	 */
@@ -33,6 +36,7 @@ public class ConnectionFrame extends JFrame implements ActionListener {
 		
 		usernameTextarea = new JTextArea();
 		usernameTextarea.setBounds(12, 12, 424, 25);
+		usernameTextarea.addKeyListener(this);
 		contentPane.add(usernameTextarea);
 		
 		JButton btnConnect = new JButton("Connect");
@@ -41,13 +45,16 @@ public class ConnectionFrame extends JFrame implements ActionListener {
 		contentPane.add(btnConnect);
 	}
 
-	@Override
-	public void actionPerformed(ActionEvent arg0) {
+	/**
+	 * Crée la connection.
+	 */
+	void performConnection()
+	{
 		if(usernameTextarea.getText() == "")
 			return;
 		MainController ctrl1 = new MainController();
-		ChatGUI g = new ChatGUI(ctrl1);
-		ctrl1.connect(usernameTextarea.getText());
+		ChatGUI g = new ChatGUI(ctrl1, this);
+		
 		ctrl1.addListener(new MainControllerListener() {
 			
 			@Override
@@ -87,7 +94,41 @@ public class ConnectionFrame extends JFrame implements ActionListener {
 				
 			}
 		});
+		
+		ctrl1.connect(usernameTextarea.getText());
+		
+		this.setVisible(false);
+		
+		
+	}
+	@Override
+	public void actionPerformed(ActionEvent arg0) 
+	{
+		performConnection();
+	}
 
-		this.dispose();
+	@Override
+	public void keyPressed(KeyEvent e) 
+	{
+		if(e.getSource() == this.usernameTextarea)
+		{
+			if(e.getKeyCode() == KeyEvent.VK_ENTER)
+			{
+				performConnection();
+				e.consume();
+			}
+		}
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void keyTyped(KeyEvent e) {
+		// TODO Auto-generated method stub
+		
 	}
 }

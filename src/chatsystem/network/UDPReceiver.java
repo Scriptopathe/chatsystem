@@ -48,7 +48,8 @@ public class UDPReceiver extends Thread
 	        catch (IOException e) 
 	        {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				// e.printStackTrace();
+				break;
 			} 
 		}
 	}
@@ -79,6 +80,10 @@ public class UDPReceiver extends Thread
 
 	public void setOK(boolean isOK) {
 		this.isOK = isOK;
+	}
+
+	public void dispose() {
+		this.sock.close();	
 	}
 	
 	

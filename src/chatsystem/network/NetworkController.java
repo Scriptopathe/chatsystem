@@ -50,5 +50,11 @@ public class NetworkController implements UDPReceiverListener
 		mainController.processMessage(source, msg);
 	}
 
+	public void dispose() {
+		this.udpReceiver.dispose();
+		this.udpSender.dispose();
+		
+	}
+
 	
 }

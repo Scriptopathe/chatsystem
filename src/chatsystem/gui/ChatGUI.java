@@ -31,15 +31,18 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	private List<GuiListener> listeners;
 	private JMenuItem mntmDisconnect;
 	private MainController mainController;
+	private ConnectionFrame connectionFrame;
+	
 	/**
 	 * Create the application.
 	 */
-	public ChatGUI(MainController ctrl) 
+	public ChatGUI(MainController ctrl, ConnectionFrame connect) 
 	{
 		internalUserList = new ArrayList<User>();
 		internalConversationsList = new ArrayList<ConversationGUI>();
 		mainController = ctrl;
 		listeners = new ArrayList<GuiListener>();
+		connectionFrame = connect;
 		
 		ctrl.addListener(this);
 		this.addListener(ctrl);
@@ -57,6 +60,7 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		frame.getContentPane().setLayout(new BorderLayout(0, 0));
 		
 		JSplitPane splitPane = new JSplitPane();
+		splitPane.setResizeWeight(0.5);
 		frame.getContentPane().add(splitPane, BorderLayout.CENTER);
 		
 		connectedUserList = new JList<User>();
@@ -72,6 +76,7 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		splitPane.setLeftComponent(connectedUserList);
 		
 		JSplitPane splitPane_1 = new JSplitPane();
+		splitPane_1.setResizeWeight(0.025);
 		splitPane_1.setOrientation(JSplitPane.VERTICAL_SPLIT);
 		splitPane.setRightComponent(splitPane_1);
 		
@@ -174,6 +179,8 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		if(e.getSource() == this.mntmDisconnect)
 		{
 			notifyDisconnect();
+			this.frame.dispose();
+			this.connectionFrame.setVisible(true);
 		}
 		else if(e.getSource() == this.createConversationButton)
 		{
