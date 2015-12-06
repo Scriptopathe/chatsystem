@@ -16,6 +16,7 @@ import java.util.List;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 
+import chatsystem.controler.GuiListener;
 import chatsystem.controler.MainController;
 import chatsystem.controler.MainControllerListener;
 import chatsystem.model.User;
@@ -137,13 +138,18 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	}
 
 	@Override
-	public void OnFileRequest(User usr, String filename) {
+	public void OnFileRequest(User usr, String filename, int timestamp) {
 		// TODO Auto-generated method stub
 		
 	}
-
 	@Override
-	public void OnFileTransferEnded(User usr, String filename) {
+	public void OnFileTransferProgress(User usr, String filename, int progress,
+			int timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void OnFileTransferEnded(User usr, String filename, int timestamp) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -262,4 +268,8 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		// TODO Auto-generated method stub
 		
 	}
+
+
+
+
 }

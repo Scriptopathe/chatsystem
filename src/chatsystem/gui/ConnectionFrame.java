@@ -81,18 +81,28 @@ public class ConnectionFrame extends JFrame implements ActionListener, KeyListen
 				// TODO Auto-generated method stub
 				System.out.println("[CtrlLog] " + text);
 			}
-			
+
 			@Override
-			public void OnFileTransferEnded(User usr, String filename) {
+			public void OnFileRequest(User usr, String filename, int timestamp) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void OnFileTransferEnded(User usr, String filename,
+					int timestamp) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void OnFileTransferProgress(User usr, String filename,
+					int progress, int timestamp) {
 				// TODO Auto-generated method stub
 				
 			}
 			
-			@Override
-			public void OnFileRequest(User usr, String filename) {
-				// TODO Auto-generated method stub
-				
-			}
+
 		});
 		
 		ctrl1.connect(usernameTextarea.getText());

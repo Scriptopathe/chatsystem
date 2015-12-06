@@ -16,6 +16,7 @@ import java.util.List;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 
+import chatsystem.controler.GuiListener;
 import chatsystem.controler.MainController;
 import chatsystem.controler.MainControllerListener;
 import chatsystem.model.User;
@@ -74,11 +75,13 @@ public class ConversationGUI implements MainControllerListener, KeyListener
 		
 		JSplitPane splitPane_1 = new JSplitPane();
 		splitPane_1.setOrientation(JSplitPane.VERTICAL_SPLIT);
+		splitPane_1.setDividerLocation(0.8);
 		splitPane.setRightComponent(splitPane_1);
 		
 		messageTextArea = new JTextArea();
 		messageTextArea.setEditable(false);
 		messageTextArea.setText("");
+		
 		splitPane_1.setLeftComponent(messageTextArea);
 		
 		inputTextArea = new JTextArea();
@@ -105,7 +108,24 @@ public class ConversationGUI implements MainControllerListener, KeyListener
 	{
 
 	}
+	
+	@Override
+	public void OnFileRequest(User usr, String filename, int timestamp) {
+		// TODO Auto-generated method stub
+		messageTextArea.setText(messageTextArea.getText() + usr + " File transfert request : " + filename + ". ID = " + timestamp + "\n");
+	}
 
+	@Override
+	public void OnFileTransferEnded(User usr, String filename, int timestamp) 
+	{
+		messageTextArea.setText(messageTextArea.getText() + usr + " File transfert : " + filename + " complete.\n");
+	}
+	@Override
+	public void OnFileTransferProgress(User usr, String filename, int progress, int timestamp) {
+
+		messageTextArea.setText(messageTextArea.getText() + usr + " File transfert : " + filename + " [progress=" + progress + "%.\n");
+	}
+	
 	@Override
 	public void OnMessageReceived(User usr, String textMessage) {
 		// TODO Auto-generated method stub
@@ -115,17 +135,6 @@ public class ConversationGUI implements MainControllerListener, KeyListener
 		}
 	}
 
-	@Override
-	public void OnFileRequest(User usr, String filename) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void OnFileTransferEnded(User usr, String filename) {
-		// TODO Auto-generated method stub
-		
-	}
 
 	@Override
 	public void OnLog(String text, boolean isError) {
@@ -145,7 +154,14 @@ public class ConversationGUI implements MainControllerListener, KeyListener
 	private void notifySendMessage(User usr, String message) {
 		for(GuiListener l : listeners) l.onSendMessage(usr, message);
 	}
-	
+	private void notifySendFileRequest(User usr, String path) 
+	{
+		for(GuiListener l : listeners) l.onSendFileRequest(usr, path);
+	}
+	private void notifyAcceptFileRequest(User usr, int timestamp) 
+	{
+		for(GuiListener l : listeners) l.onAcceptFileRequest(usr, timestamp);
+	}
 	public void addListener(GuiListener l) { listeners.add(l); }
 
 	/* ------------------------------------------------------------------------
@@ -160,13 +176,54 @@ public class ConversationGUI implements MainControllerListener, KeyListener
 			{
 				if(!e.isControlDown())
 				{
-					for(UserAdapter usr : this.getUserAdapters())
+					String text = this.inputTextArea.getText();
+					if(text.startsWith("\\file"))
 					{
-						notifySendMessage(usr.getUser(), this.inputTextArea.getText());
+						text = text.replaceFirst("\\\\file", "").trim();
+						for(UserAdapter usr : this.getUserAdapters())
+						{
+							notifySendFileRequest(usr.getUser(), text);
+						}
+						this.messageTextArea.setText(this.messageTextArea.getText() + "File transfert request sent. " + "\n");
+						this.inputTextArea.setText("");
+						e.consume();
 					}
-					this.messageTextArea.setText(this.messageTextArea.getText() + "me says : " + this.inputTextArea.getText() + "\n");
-					this.inputTextArea.setText("");
-					e.consume();
+					else if(text.startsWith("\\accept"))
+					{
+						
+						text = text.replaceFirst("\\\\accept", "").trim();
+						try
+						{
+							int timestamp = Integer.parseInt(text);
+							for(UserAdapter usr : this.getUserAdapters())
+							{
+								notifyAcceptFileRequest(usr.getUser(), timestamp);
+							}
+							this.messageTextArea.setText(this.messageTextArea.getText() + "File transfert accepted . " + "\n");
+							this.inputTextArea.setText("");
+							e.consume();
+						}
+						catch(NumberFormatException ex)
+						{
+							this.messageTextArea.setText(this.messageTextArea.getText() + "Bad file id. " + "\n");
+							this.inputTextArea.setText("");
+							e.consume();
+						}
+	
+
+					}
+					else
+					{
+						// Send message.
+						for(UserAdapter usr : this.getUserAdapters())
+						{
+							notifySendMessage(usr.getUser(), this.inputTextArea.getText());
+						}
+						this.messageTextArea.setText(this.messageTextArea.getText() + "me says : " + this.inputTextArea.getText() + "\n");
+						this.inputTextArea.setText("");
+						e.consume();
+					}
+
 				}
 			}
 			
@@ -215,4 +272,8 @@ public class ConversationGUI implements MainControllerListener, KeyListener
 		}
 		return title;
 	}
+
+
+
+
 }

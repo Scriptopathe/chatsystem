@@ -2,9 +2,9 @@ package chatsystem.controler;
 
 import java.io.*;
 import java.net.*;
+import java.security.Timestamp;
 import java.util.*;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-import chatsystem.gui.GuiListener;
 import chatsystem.messages.*;
 import chatsystem.model.*;
 import chatsystem.network.*;
@@ -22,6 +22,9 @@ public class MainController implements GuiListener
 	private UserList userList;
 	private String nickname;
 	private List<MainControllerListener> listeners;
+	private HashMap<Integer, FileRequestMessage> incomingFileRequests;
+	private HashMap<Integer, FileRequestMessage> outgoingFileRequests;
+	
 	/* ------------------------------------------------------------------------
 	 * Constructeur
 	 * ----------------------------------------------------------------------*/
@@ -32,8 +35,10 @@ public class MainController implements GuiListener
 			this.netControler = new NetworkController(this);
 			this.userList = new UserList();
 			this.listeners = new ArrayList<MainControllerListener>();
+			this.incomingFileRequests = new HashMap<Integer, FileRequestMessage>();
+			this.outgoingFileRequests = new HashMap<Integer, FileRequestMessage>();
 		}
-		catch (SocketException e) 
+		catch (IOException e) 
 		{
 			// TODO Une belle message box + exit !!!
 			e.printStackTrace();
@@ -69,7 +74,7 @@ public class MainController implements GuiListener
 				try 
 				{
 					this.netControler.sendMessage(usr.getIpaddr(), new HelloMessage(nickname, false));
-				} 
+				}
 				catch (IOException e) 
 				{
 					notifyLog("[Error] Sending hello back to " + usr + ": Unable to send hello back.", true);
@@ -104,12 +109,34 @@ public class MainController implements GuiListener
 		else if(msg instanceof FileRequestMessage)
 		{
 			FileRequestMessage frm = (FileRequestMessage)msg;
-			
-			throw new NotImplementedException();
+			User usr = getUserList().getUserByIP(srcAddr);
+			notifyLog("Message received from " + usr + " : " + msg.toJSON(), false);
+			notifyFileRequest(usr, frm.getFileName(), frm.getTimestamp());
+			this.incomingFileRequests.put(frm.getTimestamp(), frm);
 		}
 		else if(msg instanceof FileRequestResponseMessage)
 		{
-			throw new NotImplementedException();
+			FileRequestResponseMessage frrm = (FileRequestResponseMessage)msg;
+			User usr = getUserList().getUserByIP(srcAddr);
+			FileRequestMessage acceptedFileRequest = this.outgoingFileRequests.get(frrm.getTimestamp());
+			if(acceptedFileRequest != null)
+			{
+				this.outgoingFileRequests.remove(frrm.getTimestamp());
+				try 
+				{
+					notifyLog("Sending file " + acceptedFileRequest.getFileName(), true);
+					this.netControler.sendFile(srcAddr, acceptedFileRequest.getFileName());
+					// TODO suivi du progrès
+				} 
+				catch (FileNotFoundException e) 
+				{
+					e.printStackTrace();
+				}
+			}
+			else
+			{
+				notifyLog("[Error] Received invalid FileRequestResponseMessage.", true);
+			}
 		}
 	}
 	
@@ -154,10 +181,59 @@ public class MainController implements GuiListener
 		catch (IOException e) 
 		{
 			// TODO Auto-generated catch block
-			System.out.println("Unable to bye message");
+			System.out.println("Unable to send bye message.");
 			e.printStackTrace();
 		}
 	}
+	
+	public void sendFileRequest(User usr, String path)
+	{
+		int timestamp = (int)System.currentTimeMillis();
+		FileRequestMessage msg = new FileRequestMessage(path, timestamp);
+		try 
+		{
+			netControler.sendMessage(usr.getIpaddr(), msg);
+			this.outgoingFileRequests.put(timestamp, msg);
+		}
+		catch (IOException e) 
+		{
+			System.out.println("Unable to send file request.");
+			e.printStackTrace();
+		}
+	}
+	
+	public void sendAcceptFileRequest(final User usr, final int fileTimestamp)
+	{
+		try 
+		{
+			final FileRequestMessage request = this.incomingFileRequests.get(fileTimestamp);
+			netControler.sendMessage(usr.getIpaddr(), new FileRequestResponseMessage(true, fileTimestamp));
+			final MainController othis = this;
+			netControler.receiveFile(usr.getIpaddr(), new FileRequestMessage(request.getFileName(), fileTimestamp), new TCPProgressListener() 
+			{
+				@Override
+				public void onNotifyProgress(InetAddress source, int progress) {
+					// TODO Auto-generated method stub
+					othis.notifyFileTransferProgress(usr, request.getFileName(), progress, fileTimestamp);
+				}
+				
+				@Override
+				public void onNotifyEnd(InetAddress source) {
+					// TODO Auto-generated method stub
+					othis.notifyFileTransferEnded(usr, request.getFileName(), fileTimestamp);
+				}
+			});
+			
+			this.incomingFileRequests.remove(fileTimestamp);
+			
+		} 
+		catch (IOException e)
+		{
+			System.out.println("Unable to accept file request.");
+			e.printStackTrace();
+		}
+	}
+	
 	/* ------------------------------------------------------------------------
 	 * Getters / Setters
 	 * ----------------------------------------------------------------------*/
@@ -187,11 +263,14 @@ public class MainController implements GuiListener
 	private void notifyMessageReceived(User usr, String textMessage) {
 		for(MainControllerListener l : listeners) l.OnMessageReceived(usr, textMessage);
 	}
-	private void notifyFileRequest(User usr, String filename) {
-		for(MainControllerListener l : listeners) l.OnFileRequest(usr, filename);
+	private void notifyFileRequest(User usr, String filename, int timestamp) {
+		for(MainControllerListener l : listeners) l.OnFileRequest(usr, filename, timestamp);
 	}
-	private void notifyFileTransferEnded(User usr, String filename) {
-		for(MainControllerListener l : listeners) l.OnFileTransferEnded(usr, filename);
+	private void notifyFileTransferEnded(User usr, String filename, int timestamp) {
+		for(MainControllerListener l : listeners) l.OnFileTransferEnded(usr, filename, timestamp);
+	}
+	private void notifyFileTransferProgress(User usr, String filename, int progress, int timestamp) {
+		for(MainControllerListener l : listeners) l.OnFileTransferProgress(usr, filename, progress, timestamp);
 	}
 	private void notifyLog(String text, boolean isError) {
 		for(MainControllerListener l : listeners) l.OnLog(text, isError);
@@ -208,7 +287,6 @@ public class MainController implements GuiListener
 		this.connect(username);
 	}
 
-
 	@Override
 	public void onDisconnect() {
 		this.disconnect();
@@ -217,5 +295,16 @@ public class MainController implements GuiListener
 	@Override
 	public void onSendMessage(User usr, String message) {
 		this.sendTextMessage(usr, message);
+	}
+	@Override
+	public void onSendFileRequest(User usr, String path) 
+	{
+		this.sendFileRequest(usr, path);
+	}
+	
+	@Override
+	public void onAcceptFileRequest(User usr, int fileTimestamp)
+	{
+		this.sendAcceptFileRequest(usr, fileTimestamp);
 	}
 }
