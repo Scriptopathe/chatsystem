@@ -52,7 +52,7 @@ public class TCPListener extends Thread
 	public void run()
 	{
 		while(true)
-		{
+		{	
 			try 
 			{
 				Socket sock = this.socket.accept();
@@ -60,9 +60,20 @@ public class TCPListener extends Thread
 			}
 			catch (IOException e) 
 			{
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				break;
 			}
+		}
+	}
+
+	public void dispose() {
+		try 
+		{
+			this.socket.close();
+		} 
+		catch (IOException e) 
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	

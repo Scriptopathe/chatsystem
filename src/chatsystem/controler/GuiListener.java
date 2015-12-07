@@ -9,4 +9,5 @@ public interface GuiListener
 	void onSendMessage(User usr, String message);
 	void onSendFileRequest(User usr, String path);
 	void onAcceptFileRequest(User usr, int fileTimestamp);
+	void onRejectFileRequest(User usr, int fileTimestamp);
 }

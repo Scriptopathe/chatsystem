@@ -62,7 +62,12 @@ public class ConnectionFrame extends JFrame implements ActionListener, KeyListen
 				System.out.println("User " + usr + " disconnected");
 				
 			}
-			
+			@Override
+			public void OnFileRequestResponse(User usr, String filename, int timestamp,
+					boolean accepted) {
+				// TODO Auto-generated method stub
+				
+			}
 			@Override
 			public void OnUserConnected(User usr) {
 				// TODO Auto-generated method stub
@@ -83,7 +88,7 @@ public class ConnectionFrame extends JFrame implements ActionListener, KeyListen
 			}
 
 			@Override
-			public void OnFileRequest(User usr, String filename, int timestamp) {
+			public void OnIncomingFileRequest(User usr, String filename, int timestamp) {
 				// TODO Auto-generated method stub
 				
 			}
@@ -101,7 +106,11 @@ public class ConnectionFrame extends JFrame implements ActionListener, KeyListen
 				// TODO Auto-generated method stub
 				
 			}
-			
+			@Override
+			public void OnOutgoingFileRequest(User usr, String filename, int timestamp) {
+				// TODO Auto-generated method stub
+				
+			}
 
 		});
 		

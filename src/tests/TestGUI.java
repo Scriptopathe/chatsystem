@@ -19,8 +19,7 @@ public class TestGUI {
 		// UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		ConnectionFrame frame = new ConnectionFrame();
 		frame.setVisible(true);
-		
-		new ConversationFrame().setVisible(true);
+		// TODO : remontée des informations -> fileRequestResponse
 	}
 
 }

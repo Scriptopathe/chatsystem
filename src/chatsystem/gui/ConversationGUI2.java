@@ -49,8 +49,8 @@ public class ConversationGUI2 implements MainControllerListener, KeyListener
 		// Création du titre.
 		frame.setTitle(this.toString());
 		frame.setBounds(100, 100, 450, 300);
-		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		frame.getContentPane().setLayout(new BorderLayout(0, 0));
+		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		frame.addWindowListener(new WindowAdapter() {
 	        @Override
 	        public void windowClosing(WindowEvent e) {
@@ -95,6 +95,7 @@ public class ConversationGUI2 implements MainControllerListener, KeyListener
 		
 		frame.setVisible(true);
 	}
+	
 	/* ------------------------------------------------------------------------
 	 * MainControllerListener
 	 * --------------------------------------------------------------------- */
@@ -108,9 +109,13 @@ public class ConversationGUI2 implements MainControllerListener, KeyListener
 	{
 
 	}
-	
 	@Override
-	public void OnFileRequest(User usr, String filename, int timestamp) {
+	public void OnOutgoingFileRequest(User usr, String filename, int timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void OnIncomingFileRequest(User usr, String filename, int timestamp) {
 		// TODO Auto-generated method stub
 		messageTextArea.setText(messageTextArea.getText() + usr + " File transfert request : " + filename + ". ID = " + timestamp + "\n");
 	}
@@ -134,7 +139,12 @@ public class ConversationGUI2 implements MainControllerListener, KeyListener
 			messageTextArea.setText(messageTextArea.getText() + usr + " says :" + textMessage+ "\n" );
 		}
 	}
-
+	@Override
+	public void OnFileRequestResponse(User usr, String filename, int timestamp,
+			boolean accepted) {
+		// TODO Auto-generated method stub
+		
+	}
 
 	@Override
 	public void OnLog(String text, boolean isError) {
@@ -258,6 +268,7 @@ public class ConversationGUI2 implements MainControllerListener, KeyListener
 		}
 		return users;
 	}
+	
 	public void setVisible(boolean b)
 	{
 		this.frame.setVisible(b);

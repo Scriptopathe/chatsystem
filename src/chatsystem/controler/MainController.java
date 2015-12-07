@@ -111,13 +111,19 @@ public class MainController implements GuiListener
 			FileRequestMessage frm = (FileRequestMessage)msg;
 			User usr = getUserList().getUserByIP(srcAddr);
 			notifyLog("Message received from " + usr + " : " + msg.toJSON(), false);
-			notifyFileRequest(usr, frm.getFileName(), frm.getTimestamp());
+			notifyIncomingFileRequest(usr, frm.getFileName(), frm.getTimestamp());
 			this.incomingFileRequests.put(frm.getTimestamp(), frm);
 		}
 		else if(msg instanceof FileRequestResponseMessage)
 		{
 			FileRequestResponseMessage frrm = (FileRequestResponseMessage)msg;
 			User usr = getUserList().getUserByIP(srcAddr);
+			if(!frrm.isOk())
+			{
+				notifyLog("File transfer " + frrm.getTimestamp() + " rejected.", true);
+				this.outgoingFileRequests.remove(frrm.getTimestamp());
+				return;
+			}
 			FileRequestMessage acceptedFileRequest = this.outgoingFileRequests.get(frrm.getTimestamp());
 			if(acceptedFileRequest != null)
 			{
@@ -194,6 +200,7 @@ public class MainController implements GuiListener
 		{
 			netControler.sendMessage(usr.getIpaddr(), msg);
 			this.outgoingFileRequests.put(timestamp, msg);
+			this.notifyOutgoingFileRequest(usr, path, timestamp);
 		}
 		catch (IOException e) 
 		{
@@ -202,28 +209,33 @@ public class MainController implements GuiListener
 		}
 	}
 	
-	public void sendAcceptFileRequest(final User usr, final int fileTimestamp)
+	public void sendFileRequestResponse(final User usr, final int fileTimestamp, final boolean accept)
 	{
 		try 
 		{
 			final FileRequestMessage request = this.incomingFileRequests.get(fileTimestamp);
-			netControler.sendMessage(usr.getIpaddr(), new FileRequestResponseMessage(true, fileTimestamp));
-			final MainController othis = this;
-			netControler.receiveFile(usr.getIpaddr(), new FileRequestMessage(request.getFileName(), fileTimestamp), new TCPProgressListener() 
-			{
-				@Override
-				public void onNotifyProgress(InetAddress source, int progress) {
-					// TODO Auto-generated method stub
-					othis.notifyFileTransferProgress(usr, request.getFileName(), progress, fileTimestamp);
-				}
-				
-				@Override
-				public void onNotifyEnd(InetAddress source) {
-					// TODO Auto-generated method stub
-					othis.notifyFileTransferEnded(usr, request.getFileName(), fileTimestamp);
-				}
-			});
+			netControler.sendMessage(usr.getIpaddr(), new FileRequestResponseMessage(accept, fileTimestamp));
 			
+			if(accept)
+			{
+				final MainController othis = this;
+				netControler.receiveFile(usr.getIpaddr(), new FileRequestMessage(request.getFileName(), fileTimestamp), new TCPProgressListener() 
+				{
+					@Override
+					public void onNotifyProgress(InetAddress source, int progress) {
+						// TODO Auto-generated method stub
+						othis.notifyFileTransferProgress(usr, request.getFileName(), progress, fileTimestamp);
+					}
+					
+					@Override
+					public void onNotifyEnd(InetAddress source) {
+						// TODO Auto-generated method stub
+						othis.notifyFileTransferEnded(usr, request.getFileName(), fileTimestamp);
+					}
+				});
+			}
+
+			this.notifyFileTransferResponse(usr, this.incomingFileRequests.get(fileTimestamp).getFileName(), fileTimestamp, accept);
 			this.incomingFileRequests.remove(fileTimestamp);
 			
 		} 
@@ -263,14 +275,20 @@ public class MainController implements GuiListener
 	private void notifyMessageReceived(User usr, String textMessage) {
 		for(MainControllerListener l : listeners) l.OnMessageReceived(usr, textMessage);
 	}
-	private void notifyFileRequest(User usr, String filename, int timestamp) {
-		for(MainControllerListener l : listeners) l.OnFileRequest(usr, filename, timestamp);
+	private void notifyIncomingFileRequest(User usr, String filename, int timestamp) {
+		for(MainControllerListener l : listeners) l.OnIncomingFileRequest(usr, filename, timestamp);
+	}
+	private void notifyOutgoingFileRequest(User usr, String filename, int timestamp) {
+		for(MainControllerListener l : listeners) l.OnOutgoingFileRequest(usr, filename, timestamp);
 	}
 	private void notifyFileTransferEnded(User usr, String filename, int timestamp) {
 		for(MainControllerListener l : listeners) l.OnFileTransferEnded(usr, filename, timestamp);
 	}
 	private void notifyFileTransferProgress(User usr, String filename, int progress, int timestamp) {
 		for(MainControllerListener l : listeners) l.OnFileTransferProgress(usr, filename, progress, timestamp);
+	}	
+	private void notifyFileTransferResponse(User usr, String filename, int timestamp, boolean accepted) {
+		for(MainControllerListener l : listeners) l.OnFileRequestResponse(usr, filename, timestamp, accepted);
 	}
 	private void notifyLog(String text, boolean isError) {
 		for(MainControllerListener l : listeners) l.OnLog(text, isError);
@@ -296,6 +314,7 @@ public class MainController implements GuiListener
 	public void onSendMessage(User usr, String message) {
 		this.sendTextMessage(usr, message);
 	}
+	
 	@Override
 	public void onSendFileRequest(User usr, String path) 
 	{
@@ -305,6 +324,12 @@ public class MainController implements GuiListener
 	@Override
 	public void onAcceptFileRequest(User usr, int fileTimestamp)
 	{
-		this.sendAcceptFileRequest(usr, fileTimestamp);
+		this.sendFileRequestResponse(usr, fileTimestamp, true);
+	}
+
+
+	@Override
+	public void onRejectFileRequest(User usr, int fileTimestamp) {
+		this.sendFileRequestResponse(usr, fileTimestamp, false);
 	}
 }

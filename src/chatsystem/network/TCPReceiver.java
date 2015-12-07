@@ -47,7 +47,6 @@ public class TCPReceiver extends Thread{
 			DataInputStream in = new DataInputStream(socket.getInputStream());
 			DataOutputStream out = new DataOutputStream(this.stream);
 			byte[] buffer = new byte[1024];
-			int totalBytes = in.available();
 			int bytesRead = 0;
 			int it = 0;
 			int size = 0;
@@ -62,7 +61,7 @@ public class TCPReceiver extends Thread{
 					it++;
 					bytesRead += size;
 					if(it % 10 == 0)
-						notifyProgress(socket.getInetAddress(), 100*bytesRead/totalBytes);
+						notifyProgress(socket.getInetAddress(), bytesRead);
 				}
 				
 			}

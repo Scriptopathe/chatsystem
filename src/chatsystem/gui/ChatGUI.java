@@ -10,6 +10,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,22 +27,29 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 {
 	private JFrame frame;
 	private JList<User> connectedUserList;
-	private List<User> internalUserList;
+	private UserListModel connectedUserListModel;
 	private JButton createConversationButton;
-	private JList<ConversationGUI2> conversationsList;
-	private List<ConversationGUI2> internalConversationsList;
+	private JList<ConversationFrame> conversationsList;
+	private List<ConversationFrame> internalConversationsList;
 	private List<GuiListener> listeners;
 	private JMenuItem mntmDisconnect;
 	private MainController mainController;
 	private ConnectionFrame connectionFrame;
 	
+	class UserListModel extends DefaultListModel<User>
+	{
+	    public void update() 
+	    {
+	        this.fireContentsChanged(this, 0, this.getSize()-1);
+	    }
+	}
 	/**
 	 * Create the application.
 	 */
 	public ChatGUI(MainController ctrl, ConnectionFrame connect) 
 	{
-		internalUserList = new ArrayList<User>();
-		internalConversationsList = new ArrayList<ConversationGUI2>();
+		connectedUserListModel = new UserListModel();
+		internalConversationsList = new ArrayList<ConversationFrame>();
 		mainController = ctrl;
 		listeners = new ArrayList<GuiListener>();
 		connectionFrame = connect;
@@ -56,8 +65,15 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	private void initialize() {
 		frame = new JFrame();
 		frame.setTitle("Le système de chat !");
-		frame.setBounds(100, 100, 450, 300);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setBounds(100, 100, 450, 300);		
+		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		frame.addWindowListener(new WindowAdapter() {
+	        @Override
+	        public void windowClosing(WindowEvent e) {
+	        	ChatGUI.this.disconnect();
+	        	System.exit(0);
+	        }
+		});
 		frame.getContentPane().setLayout(new BorderLayout(0, 0));
 		
 		JSplitPane splitPane = new JSplitPane();
@@ -65,14 +81,7 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		frame.getContentPane().add(splitPane, BorderLayout.CENTER);
 		
 		connectedUserList = new JList<User>();
-		connectedUserList.setModel(new AbstractListModel<User>() {
-			public int getSize() {
-				return internalUserList.size();
-			}
-			public User getElementAt(int index) {
-				return internalUserList.get(index);
-			}
-		});
+		connectedUserList.setModel(connectedUserListModel);
 		connectedUserList.setBorder(new TitledBorder(null, "", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		splitPane.setLeftComponent(connectedUserList);
 		
@@ -87,12 +96,12 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		splitPane_1.setLeftComponent(createConversationButton);
 		
 		// Liste des conversations.
-		conversationsList = new JList<ConversationGUI2>();
-		conversationsList.setModel(new AbstractListModel<ConversationGUI2>() {
+		conversationsList = new JList<ConversationFrame>();
+		conversationsList.setModel(new AbstractListModel<ConversationFrame>() {
 			public int getSize() {
 				return internalConversationsList.size();
 			}
-			public ConversationGUI2 getElementAt(int index) {
+			public ConversationFrame getElementAt(int index) {
 				return internalConversationsList.get(index);
 			}
 		});
@@ -115,30 +124,98 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		mnFile.add(mntmDisconnect);
 		frame.setVisible(true);
 	}
+	
+	private void disconnect()
+	{
+		notifyDisconnect();
+		this.frame.dispose();
+		this.connectionFrame.setVisible(true);
+		for(ConversationFrame conv : this.internalConversationsList)
+		{
+			conv.dispose();
+		}
+	}
+	
+	private void connect()
+	{
+		List<User> connectedUsers = this.connectedUserList.getSelectedValuesList();
+		ConversationFrame c = null;
+		for(ConversationFrame conv : this.internalConversationsList)
+		{
+			boolean isOK = true;
+			// On vérifie que la conversation n'existe pas déja.
+			if(connectedUsers.size() == conv.getUsers().size())
+			{
+				for(User user : conv.getUsers())
+				{
+					if(!connectedUsers.contains(user))
+					{
+						isOK = false;
+					}
+				}
+			}
+			else
+				isOK = false;
+			
+			if(isOK)
+				c = conv;
+		}
+		
+		
+		// Si la conversation existe : on l'affiche
+		if(c != null)
+		{
+			c.setVisible(true);
+		}
+		else
+		{
+			// Sinon on la crée.
+			List<User> adapters = new ArrayList<User>();
+			for(User u : connectedUsers)
+				adapters.add(u);
+			
+			c = new ConversationFrame(adapters);
+			mainController.addListener(c);
+			c.addListener(mainController);
+			this.internalConversationsList.add(c);
+			this.conversationsList.updateUI();
+		}
+	}
+	
 	/* ------------------------------------------------------------------------
 	 * MainControllerListener
 	 * --------------------------------------------------------------------- */
 	@Override
 	public void OnUserConnected(User usr) {
 		// TODO Auto-generated method stub
-		internalUserList.add(usr);
-		connectedUserList.updateUI();
+		connectedUserListModel.addElement(usr);
+		connectedUserListModel.update();
 	}
 
 	@Override
 	public void OnUserDisconnected(User usr) {
 		// TODO Auto-generated method stub
-		internalUserList.remove(usr);
-		connectedUserList.updateUI();
+		connectedUserListModel.removeElement(usr);
+		connectedUserListModel.update();
 	}
-
+	@Override
+	public void OnOutgoingFileRequest(User usr, String filename, int timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void OnFileRequestResponse(User usr, String filename, int timestamp,
+			boolean accepted) {
+		// TODO Auto-generated method stub
+		
+	}
 	@Override
 	public void OnMessageReceived(User usr, String textMessage) {
 		// TODO si on veut afficher un truc
 	}
 
 	@Override
-	public void OnFileRequest(User usr, String filename, int timestamp) {
+	public void OnIncomingFileRequest(User usr, String filename, int timestamp) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -179,59 +256,17 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	/* ------------------------------------------------------------------------
 	 * Action Listener
 	 * --------------------------------------------------------------------- */
+	
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		// TODO Auto-generated method stub
 		if(e.getSource() == this.mntmDisconnect)
 		{
-			notifyDisconnect();
-			this.frame.dispose();
-			this.connectionFrame.setVisible(true);
+			this.disconnect();
 		}
 		else if(e.getSource() == this.createConversationButton)
 		{
-			List<User> connectedUsers = this.connectedUserList.getSelectedValuesList();
-			ConversationGUI2 c = null;
-			for(ConversationGUI2 conv : this.internalConversationsList)
-			{
-				boolean isOK = true;
-				// On vérifie que la conversation n'existe pas déja.
-				if(connectedUsers.size() == conv.getUserAdapters().size())
-				{
-					for(UserAdapter userAdapter : conv.getUserAdapters())
-					{
-						if(!connectedUsers.contains(userAdapter.getUser()))
-						{
-							isOK = false;
-						}
-					}
-				}
-				else
-					isOK = false;
-				
-				if(isOK)
-					c = conv;
-			}
-			
-			
-			// Si la conversation existe : on l'affiche
-			if(c != null)
-			{
-				c.setVisible(true);
-			}
-			else
-			{
-				// Sinon on la crée.
-				List<UserAdapter> adapters = new ArrayList<UserAdapter>();
-				for(User u : connectedUsers)
-					adapters.add(new UserAdapter(u));
-				
-				c = new ConversationGUI2(adapters);
-				mainController.addListener(c);
-				c.addListener(mainController);
-				this.internalConversationsList.add(c);
-				this.conversationsList.updateUI();
-			}
+			this.connect();
 		}
 	}
 
@@ -268,6 +303,10 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		// TODO Auto-generated method stub
 		
 	}
+
+
+
+
 
 
 
