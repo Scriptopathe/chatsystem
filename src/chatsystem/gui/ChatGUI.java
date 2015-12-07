@@ -27,8 +27,8 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	private JList<User> connectedUserList;
 	private List<User> internalUserList;
 	private JButton createConversationButton;
-	private JList<ConversationGUI> conversationsList;
-	private List<ConversationGUI> internalConversationsList;
+	private JList<ConversationGUI2> conversationsList;
+	private List<ConversationGUI2> internalConversationsList;
 	private List<GuiListener> listeners;
 	private JMenuItem mntmDisconnect;
 	private MainController mainController;
@@ -40,7 +40,7 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	public ChatGUI(MainController ctrl, ConnectionFrame connect) 
 	{
 		internalUserList = new ArrayList<User>();
-		internalConversationsList = new ArrayList<ConversationGUI>();
+		internalConversationsList = new ArrayList<ConversationGUI2>();
 		mainController = ctrl;
 		listeners = new ArrayList<GuiListener>();
 		connectionFrame = connect;
@@ -87,12 +87,12 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		splitPane_1.setLeftComponent(createConversationButton);
 		
 		// Liste des conversations.
-		conversationsList = new JList<ConversationGUI>();
-		conversationsList.setModel(new AbstractListModel<ConversationGUI>() {
+		conversationsList = new JList<ConversationGUI2>();
+		conversationsList.setModel(new AbstractListModel<ConversationGUI2>() {
 			public int getSize() {
 				return internalConversationsList.size();
 			}
-			public ConversationGUI getElementAt(int index) {
+			public ConversationGUI2 getElementAt(int index) {
 				return internalConversationsList.get(index);
 			}
 		});
@@ -191,8 +191,8 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		else if(e.getSource() == this.createConversationButton)
 		{
 			List<User> connectedUsers = this.connectedUserList.getSelectedValuesList();
-			ConversationGUI c = null;
-			for(ConversationGUI conv : this.internalConversationsList)
+			ConversationGUI2 c = null;
+			for(ConversationGUI2 conv : this.internalConversationsList)
 			{
 				boolean isOK = true;
 				// On vérifie que la conversation n'existe pas déja.
@@ -226,7 +226,7 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 				for(User u : connectedUsers)
 					adapters.add(new UserAdapter(u));
 				
-				c = new ConversationGUI(adapters);
+				c = new ConversationGUI2(adapters);
 				mainController.addListener(c);
 				c.addListener(mainController);
 				this.internalConversationsList.add(c);

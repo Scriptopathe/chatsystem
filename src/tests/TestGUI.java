@@ -4,6 +4,7 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
 import chatsystem.gui.ConnectionFrame;
+import chatsystem.gui.ConversationFrame;
 
 public class TestGUI {
 
@@ -18,6 +19,8 @@ public class TestGUI {
 		// UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		ConnectionFrame frame = new ConnectionFrame();
 		frame.setVisible(true);
+		
+		new ConversationFrame().setVisible(true);
 	}
 
 }
