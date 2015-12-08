@@ -17,8 +17,13 @@ public class TestGUI {
 	 */
 	public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException {
 		// UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+
+        UIManager.setLookAndFeel(
+            UIManager.getSystemLookAndFeelClassName());
+        
 		ConnectionFrame frame = new ConnectionFrame();
 		frame.setVisible(true);
+
 		// TODO : remontée des informations -> fileRequestResponse
 	}
 

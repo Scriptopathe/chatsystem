@@ -22,13 +22,13 @@ import java.util.*;
 public class ConversationFrame extends JFrame implements MainControllerListener, KeyListener
 {
 
-	private JPanel contentPane;
-	private JTextArea inputTextArea;
-	private JTextArea messageTextArea;
-	private JList<FileTransfer> fileList;
-	private List<FileTransfer> fileTransfers;
-	private List<User> userList;
-	private List<UIListener> listeners;
+	private volatile JPanel contentPane;
+	private volatile JTextArea inputTextArea;
+	private volatile JTextArea messageTextArea;
+	private volatile JList<FileTransfer> fileList;
+	private volatile List<FileTransfer> fileTransfers;
+	private volatile List<User> userList;
+	private volatile List<UIListener> listeners;
 	
 
 	/**
@@ -60,6 +60,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 		contentPane.setLayout(new BorderLayout(0, 0));
 		
 		fileList = new JList<FileTransfer>();
+		fileList.setCellRenderer(new FileTransfertCellRenderer());
 		fileList.setModel(new AbstractListModel<FileTransfer>() {
 			public int getSize() {
 				return fileTransfers.size();
@@ -68,6 +69,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 				return fileTransfers.get(index);
 			}
 		});
+		
 		contentPane.add(fileList, BorderLayout.EAST);
 		fileList.setSize(200, -1);
 		
@@ -78,7 +80,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 		JScrollPane scrollPane2 = new JScrollPane();
 		panel.add(scrollPane2, BorderLayout.CENTER);
 		inputTextArea = new JTextArea();
-		inputTextArea.setText("inputTextField");
+		inputTextArea.setText("\\file banana.txt");
 		scrollPane2.setViewportView(inputTextArea);
 		inputTextArea.setColumns(10);
 		inputTextArea.addKeyListener(this);
@@ -130,20 +132,28 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	/* ------------------------------------------------------------------------
 	 * MainControllerListener
 	 * --------------------------------------------------------------------- */
-	
+	private void updateFileList()
+	{
+		SwingUtilities.invokeLater(new Runnable() {
+		    public void run() {
+		        //ConversationFrame.this.fileList.revalidate();
+		       // ConversationFrame.this.fileList.repaint();
+		        ConversationFrame.this.fileList.updateUI();
+		    }
+		});
+	}
 	@Override
 	public void OnIncomingFileRequest(User usr, String filename, int timestamp) {
 		// TODO Auto-generated method stub
 		messageTextArea.setText(messageTextArea.getText() + usr + " File transfert request : " + filename + ". ID = " + timestamp + "\n");
 		this.fileTransfers.add(new FileTransfer(true, timestamp, filename));
-		this.fileList.updateUI();
 	}
 	
 	@Override
 	public void OnOutgoingFileRequest(User usr, String filename, int timestamp) {
 		// TODO Auto-generated method stub
 		this.fileTransfers.add(new FileTransfer(false, timestamp, filename));
-		this.fileList.updateUI();
+		this.updateFileList();
 	}
 	
 	@Override
@@ -151,15 +161,15 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	{
 		messageTextArea.setText(messageTextArea.getText() + usr + " File transfert : " + filename + " complete.\n");
 		this.getFileTransfer(timestamp).ended = true;
-		this.fileList.updateUI();
+		this.updateFileList();
 	}
 	
 	@Override
 	public void OnFileTransferProgress(User usr, String filename, int progress, int timestamp) 
 	{
-		messageTextArea.setText(messageTextArea.getText() + usr + " File transfert : " + filename + " [progress=" + progress + "%.\n");
+		messageTextArea.append("File transfert : " + filename + " [progress=" + progress + "%.\n");
 		this.getFileTransfer(timestamp).progress = progress;
-		this.fileList.updateUI();
+		this.updateFileList();
 	}
 	
 	@Override
@@ -175,7 +185,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	public void OnFileRequestResponse(User usr, String filename, int timestamp, boolean accepted) 
 	{
 		this.getFileTransfer(timestamp).ended = true;
-		this.fileList.updateUI();
+		this.updateFileList();
 	}
 	
 	@Override
@@ -225,7 +235,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 			notifyAcceptFileRequest(usr, fileTimestamp);
 		}
 		this.getFileTransfer(fileTimestamp).accepted = true;
-		this.fileList.updateUI();
+		this.updateFileList();
 		this.messageTextArea.append("File transfert accepted . " + "\n");
 		this.inputTextArea.setText("");
 	}
@@ -245,7 +255,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 		this.getFileTransfer(fileTimestamp).accepted = false;
 		this.getFileTransfer(fileTimestamp).ended = true;
 		
-		this.fileList.updateUI();
+		this.updateFileList();
 		this.messageTextArea.append("File transfert accepted . " + "\n");
 		this.inputTextArea.setText("");
 	}

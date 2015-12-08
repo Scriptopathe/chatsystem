@@ -40,11 +40,16 @@ public class TCPListener extends Thread
 	 * @return le socket correspondant à l'IP source donnée s'il a été enregistré
 	 * null sinon.
 	 */
-	public Socket getSocket(InetAddress addr)
+	public Socket popSocket(InetAddress addr)
 	{
 		String addrname = toId(addr);
 		if(acceptedSockets.containsKey(addrname))
-			return acceptedSockets.get(addrname);
+		{
+			Socket sock = acceptedSockets.get(addrname);
+			acceptedSockets.remove(sock);
+			return sock;
+			
+		}
 		return null;
 	}
 	

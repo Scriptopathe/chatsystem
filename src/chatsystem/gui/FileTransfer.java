@@ -20,31 +20,30 @@ public class FileTransfer {
 		this.accepted = false;
 	}
 	
-	
-	public String toString()
+	public String getStateName()
 	{
-		if(!this.accepted)
+		if(this.accepted)
 		{
 			if(this.ended)
-				return this.filename + " : rejected";
-			
-			if(this.isIncoming)
-			{
-				return this.filename + " : accept ? ID = " + timestamp;
-			}
+				return "Transfer complete";
 			else
-			{
-				return this.filename + " : not accepted yet.";
-			}
-		}
-		if(this.ended)
-		{
-			return this.filename +" : finished";
+				return "In progress... " + progress/1000 + "Kb / ... Kb";
 		}
 		else
 		{
-			return this.filename + " : " + this.progress + " %";
+			if(this.ended)
+				return "Transfer rejeted.";
+			else
+				if(this.isIncoming)
+					return "Accept ? ID = " + timestamp;
+				else
+					return "Waiting for accept...";
 		}
+	}
+	
+	public String toString()
+	{
+		return this.filename + " : " + getStateName();
 	}
 	
 	

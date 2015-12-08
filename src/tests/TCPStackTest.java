@@ -26,7 +26,7 @@ public class TCPStackTest {
 		s.start();
 
 		System.out.println("Réception du receiver");
-		while(l.getSocket(Inet4Address.getByName("localhost")) == null) { }
+		while(l.popSocket(Inet4Address.getByName("localhost")) == null) { }
 
 		System.out.println("Creation du socket receiver");
 		System.out.println("Coucou Laura et Josué ! :)");

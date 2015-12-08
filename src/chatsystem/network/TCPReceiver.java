@@ -40,13 +40,14 @@ public class TCPReceiver extends Thread{
 			Socket socket = null;
 			while(socket == null) 
 			{
-				socket = this.tcpListener.getSocket(this.sourceAddress);
+				socket = this.tcpListener.popSocket(this.sourceAddress);
 			}
 			
 			
 			DataInputStream in = new DataInputStream(socket.getInputStream());
 			DataOutputStream out = new DataOutputStream(this.stream);
 			byte[] buffer = new byte[1024];
+			int oneKilo = 10 * 1024;
 			int bytesRead = 0;
 			int it = 0;
 			int size = 0;
@@ -60,8 +61,8 @@ public class TCPReceiver extends Thread{
 					// Mise à jour des progrès de téléchargement.
 					it++;
 					bytesRead += size;
-					if(it % 10 == 0)
-						notifyProgress(socket.getInetAddress(), bytesRead);
+					if(it % oneKilo == 0)
+						notifyProgress(socket.getInetAddress(), bytesRead/oneKilo);
 				}
 				
 			}
