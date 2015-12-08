@@ -27,7 +27,7 @@ public class FileTransfer {
 			if(this.ended)
 				return "Transfer complete";
 			else
-				return "In progress... " + progress/1000 + "Kb / ... Kb";
+				return "In progress... " + progress + "KB";
 		}
 		else
 		{

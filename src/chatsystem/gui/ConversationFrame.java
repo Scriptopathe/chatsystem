@@ -1,8 +1,11 @@
 package chatsystem.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Panel;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
@@ -25,7 +28,8 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	private volatile JPanel contentPane;
 	private volatile JTextArea inputTextArea;
 	private volatile JTextArea messageTextArea;
-	private volatile JList<FileTransfer> fileList;
+	// private volatile JList<FileTransfer> fileList;
+	private volatile FileTransferPanelManager fileList;
 	private volatile List<FileTransfer> fileTransfers;
 	private volatile List<User> userList;
 	private volatile List<UIListener> listeners;
@@ -40,7 +44,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 		this.listeners = new ArrayList<UIListener>();
 		this.userList = users;
 		this.initializeComponents();
-		
+		this.setTitle(this.toString());
 	}
 	
 	private void initializeComponents()
@@ -59,7 +63,16 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 		setContentPane(contentPane);
 		contentPane.setLayout(new BorderLayout(0, 0));
 		
-		fileList = new JList<FileTransfer>();
+		fileList = new FileTransferPanelManager();
+		fileList.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				FileTransfer t = (FileTransfer)e.getSource();
+				ConversationFrame.this.accept(t.timestamp);
+			}
+		});
+		/*fileList = new JList<FileTransfer>();
 		fileList.setCellRenderer(new FileTransfertCellRenderer());
 		fileList.setModel(new AbstractListModel<FileTransfer>() {
 			public int getSize() {
@@ -68,7 +81,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 			public FileTransfer getElementAt(int index) {
 				return fileTransfers.get(index);
 			}
-		});
+		});*/
 		
 		contentPane.add(fileList, BorderLayout.EAST);
 		fileList.setSize(200, -1);
@@ -90,9 +103,11 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 		panel_1.setLayout(new BorderLayout(0, 0));
 		
 		JButton sendMessageButton = new JButton("Send Message");
+		sendMessageButton.setPreferredSize(new Dimension(150, 25));
 		panel_1.add(sendMessageButton, BorderLayout.NORTH);
 		
 		JButton sendFileButton = new JButton("Send File");
+		sendMessageButton.setPreferredSize(new Dimension(150, 25));
 		panel_1.add(sendFileButton, BorderLayout.SOUTH);
 		
 		JScrollPane scrollPane = new JScrollPane();
@@ -109,9 +124,15 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	 * @param userSrc utilisateur qui a envoyé le message
 	 * @param msg contenu du message
 	 */
-	private void addMessage(User userSrc, String msg)
+	private synchronized void addMessage(User userSrc, String msg)
 	{
-		messageTextArea.append(userSrc + " says : " + msg + "\n");
+		String prompt;
+		if(userSrc == null)
+			prompt = "I say ";
+		else
+			prompt = userSrc + " says ";
+		
+		messageTextArea.append(prompt + " : " + msg + "\n");
 	}
 	
 	/**
@@ -132,48 +153,74 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	/* ------------------------------------------------------------------------
 	 * MainControllerListener
 	 * --------------------------------------------------------------------- */
+	private void markAccepted(int fileTimestamp, boolean accepted)
+	{
+		for(FileTransfer transfer : this.fileTransfers)
+			if(transfer.timestamp == fileTimestamp)
+				transfer.accepted = accepted;
+	}
+	
+	private void markProgress(int fileTimestamp, int progress)
+	{
+		for(FileTransfer transfer : this.fileTransfers)
+			if(transfer.timestamp == fileTimestamp)
+				transfer.progress = progress;
+	}
+	
+	private void markEnded(int fileTimestamp)
+	{
+		for(FileTransfer transfer : this.fileTransfers)
+			if(transfer.timestamp == fileTimestamp)
+				transfer.ended = true;
+	}
+	
 	private void updateFileList()
 	{
 		SwingUtilities.invokeLater(new Runnable() {
 		    public void run() {
 		        //ConversationFrame.this.fileList.revalidate();
-		       // ConversationFrame.this.fileList.repaint();
-		        ConversationFrame.this.fileList.updateUI();
+		        // ConversationFrame.this.fileList.repaint();
+		        //ConversationFrame.this.fileList.updateUI();
+		    	ConversationFrame.this.fileList.refresh();
 		    }
 		});
 	}
-	@Override
-	public void OnIncomingFileRequest(User usr, String filename, int timestamp) {
-		// TODO Auto-generated method stub
-		messageTextArea.setText(messageTextArea.getText() + usr + " File transfert request : " + filename + ". ID = " + timestamp + "\n");
-		this.fileTransfers.add(new FileTransfer(true, timestamp, filename));
-	}
 	
-	@Override
-	public void OnOutgoingFileRequest(User usr, String filename, int timestamp) {
-		// TODO Auto-generated method stub
-		this.fileTransfers.add(new FileTransfer(false, timestamp, filename));
-		this.updateFileList();
-	}
-	
-	@Override
-	public void OnFileTransferEnded(User usr, String filename, int timestamp) 
+	private void addTransfer(FileTransfer ft)
 	{
-		messageTextArea.setText(messageTextArea.getText() + usr + " File transfert : " + filename + " complete.\n");
-		this.getFileTransfer(timestamp).ended = true;
+		this.fileTransfers.add(ft);
+		this.fileList.addFileTransfer(ft);
 		this.updateFileList();
 	}
 	
 	@Override
-	public void OnFileTransferProgress(User usr, String filename, int progress, int timestamp) 
+	public synchronized void OnIncomingFileRequest(User usr, String filename, int timestamp) {
+		this.addTransfer(new FileTransfer(true, timestamp, filename));
+	}
+	
+	@Override
+	public synchronized void OnOutgoingFileRequest(User usr, String filename, int timestamp) 
 	{
-		messageTextArea.append("File transfert : " + filename + " [progress=" + progress + "%.\n");
-		this.getFileTransfer(timestamp).progress = progress;
+		this.addTransfer(new FileTransfer(false, timestamp, filename));
+	}
+	
+	@Override
+	public synchronized void OnFileTransferEnded(User usr, String filename, int timestamp) 
+	{
+		this.addMessage(usr, "File transfert : " + filename + " complete.");
+		this.markEnded(timestamp);
+		this.updateFileList();
+	}
+
+	@Override
+	public synchronized void OnFileTransferProgress(User usr, String filename, int progress, int timestamp) 
+	{
+		this.markProgress(timestamp, progress);
 		this.updateFileList();
 	}
 	
 	@Override
-	public void OnMessageReceived(User usr, String textMessage) 
+	public synchronized void OnMessageReceived(User usr, String textMessage) 
 	{
 		if(this.getUsers().contains(usr))
 		{
@@ -182,9 +229,9 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	}
 
 	@Override
-	public void OnFileRequestResponse(User usr, String filename, int timestamp, boolean accepted) 
+	public synchronized void OnFileRequestResponse(User usr, String filename, int timestamp, boolean accepted) 
 	{
-		this.getFileTransfer(timestamp).ended = true;
+		this.markAccepted(timestamp, accepted);
 		this.updateFileList();
 	}
 	
@@ -228,15 +275,16 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	 * Demande l'acceptation d'un transfert de fichier estampillé par fileTimestamp.
 	 * @param fileTimestamp timestamp du fichier à accepter.
 	 */
-	private void accept(int fileTimestamp)
+	private synchronized void accept(int fileTimestamp)
 	{
 		for(User usr : this.getUsers())
 		{
 			notifyAcceptFileRequest(usr, fileTimestamp);
 		}
-		this.getFileTransfer(fileTimestamp).accepted = true;
+		
+		this.addMessage(this.getUsers().get(0), " has accepted your file : " + getFileTransfer(fileTimestamp).filename);
+		this.markAccepted(fileTimestamp, true);
 		this.updateFileList();
-		this.messageTextArea.append("File transfert accepted . " + "\n");
 		this.inputTextArea.setText("");
 	}
 	
@@ -244,7 +292,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	 * Demande le rejet d'un transfert de fichier estampillé par fileTimestamp.
 	 * @param fileTimestamp timestamp du fichier à rejeter.
 	 */
-	private void reject(int fileTimestamp)
+	private  synchronized void reject(int fileTimestamp)
 	{
 		for(User usr : this.getUsers())
 		{
@@ -252,11 +300,10 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 		}
 		
 		// Statut du transfert : refusé et terminé.
-		this.getFileTransfer(fileTimestamp).accepted = false;
-		this.getFileTransfer(fileTimestamp).ended = true;
-		
+		this.addMessage(this.getUsers().get(0), " has rejected your file : " + getFileTransfer(fileTimestamp).filename);
+		this.markAccepted(fileTimestamp, false);
+		this.markEnded(fileTimestamp);
 		this.updateFileList();
-		this.messageTextArea.append("File transfert accepted . " + "\n");
 		this.inputTextArea.setText("");
 	}
 	
@@ -264,7 +311,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	 * Demande l'envoi du fichier dont le nom est donné en paramètre.
 	 * @param filename
 	 */
-	private void sendFile(String filename)
+	private synchronized void sendFile(String filename)
 	{
 		if(this.getUsers().size() > 1)
 		{
@@ -277,7 +324,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 		{
 			notifySendFileRequest(usr, filename);
 		}
-		this.messageTextArea.append("File transfert request sent. " + "\n");
+		this.addMessage(this.getUsers().get(0), "File transfert request sent. ");
 		this.inputTextArea.setText("");
 	}
 	
@@ -285,13 +332,13 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	 * Demande l'envoi du message donné aux utilisateurs de la conversation.
 	 * @param message
 	 */
-	private void sendMessage(String message)
+	private synchronized void sendMessage(String message)
 	{
 		for(User usr : this.getUsers())
 		{
 			notifySendMessage(usr, message);
 		}
-		this.messageTextArea.setText(this.messageTextArea.getText() + "me says : " + message + "\n");
+		this.addMessage(null, message);
 		this.inputTextArea.setText("");	
 	}
 	

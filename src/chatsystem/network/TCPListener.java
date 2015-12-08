@@ -46,7 +46,7 @@ public class TCPListener extends Thread
 		if(acceptedSockets.containsKey(addrname))
 		{
 			Socket sock = acceptedSockets.get(addrname);
-			acceptedSockets.remove(sock);
+			acceptedSockets.remove(addrname);
 			return sock;
 			
 		}
