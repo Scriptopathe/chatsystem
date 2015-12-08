@@ -11,7 +11,7 @@ import java.awt.event.WindowEvent;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
-import chatsystem.controler.GuiListener;
+import chatsystem.controler.UIListener;
 import chatsystem.controler.MainControllerListener;
 import chatsystem.model.User;
 
@@ -28,7 +28,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	private JList<FileTransfer> fileList;
 	private List<FileTransfer> fileTransfers;
 	private List<User> userList;
-	private List<GuiListener> listeners;
+	private List<UIListener> listeners;
 	
 
 	/**
@@ -37,7 +37,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	public ConversationFrame(List<User> users) 
 	{
 		this.fileTransfers = new ArrayList<FileTransfer>();
-		this.listeners = new ArrayList<GuiListener>();
+		this.listeners = new ArrayList<UIListener>();
 		this.userList = users;
 		this.initializeComponents();
 		
@@ -102,11 +102,20 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 		this.setVisible(true);
 	}
 	
+	/** 
+	 * Ajoute un message dans la conversation.
+	 * @param userSrc utilisateur qui a envoyé le message
+	 * @param msg contenu du message
+	 */
 	private void addMessage(User userSrc, String msg)
 	{
 		messageTextArea.append(userSrc + " says : " + msg + "\n");
 	}
 	
+	/**
+	 * Retourne le nom de la conversation.
+	 */
+	@Override
 	public String toString()
 	{
 		String title = "Conversation avec ";
@@ -144,15 +153,18 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 		this.getFileTransfer(timestamp).ended = true;
 		this.fileList.updateUI();
 	}
+	
 	@Override
-	public void OnFileTransferProgress(User usr, String filename, int progress, int timestamp) {
+	public void OnFileTransferProgress(User usr, String filename, int progress, int timestamp) 
+	{
 		messageTextArea.setText(messageTextArea.getText() + usr + " File transfert : " + filename + " [progress=" + progress + "%.\n");
 		this.getFileTransfer(timestamp).progress = progress;
 		this.fileList.updateUI();
 	}
 	
 	@Override
-	public void OnMessageReceived(User usr, String textMessage) {
+	public void OnMessageReceived(User usr, String textMessage) 
+	{
 		if(this.getUsers().contains(usr))
 		{
 			this.addMessage(usr, textMessage);
@@ -176,33 +188,36 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	/* ------------------------------------------------------------------------
 	 * Gui Listener
 	 * --------------------------------------------------------------------- */
-	
 	private void notifyConnect(String username) {
-		for(GuiListener l : listeners) l.onConnect(username);
+		for(UIListener l : listeners) l.onConnect(username);
 	}
 	private void notifyDisconnect() {
-		for(GuiListener l : listeners) l.onDisconnect();
+		for(UIListener l : listeners) l.onDisconnect();
 	}
 	private void notifySendMessage(User usr, String message) {
-		for(GuiListener l : listeners) l.onSendMessage(usr, message);
+		for(UIListener l : listeners) l.onSendMessage(usr, message);
 	}
 	private void notifySendFileRequest(User usr, String path) 
 	{
-		for(GuiListener l : listeners) l.onSendFileRequest(usr, path);
+		for(UIListener l : listeners) l.onSendFileRequest(usr, path);
 	}
 	private void notifyAcceptFileRequest(User usr, int timestamp) 
 	{
-		for(GuiListener l : listeners) l.onAcceptFileRequest(usr, timestamp);
+		for(UIListener l : listeners) l.onAcceptFileRequest(usr, timestamp);
 	}
 	private void notifyRejectFileRequest(User usr, int timestamp) 
 	{
-		for(GuiListener l : listeners) l.onRejectFileRequest(usr, timestamp);
+		for(UIListener l : listeners) l.onRejectFileRequest(usr, timestamp);
 	}
-	public void addListener(GuiListener l) { listeners.add(l); }
+	public void addListener(UIListener l) { listeners.add(l); }
 	
 	/* ------------------------------------------------------------------------
 	 * KEY LISTENER
 	 * --------------------------------------------------------------------- */
+	/**
+	 * Demande l'acceptation d'un transfert de fichier estampillé par fileTimestamp.
+	 * @param fileTimestamp timestamp du fichier à accepter.
+	 */
 	private void accept(int fileTimestamp)
 	{
 		for(User usr : this.getUsers())
@@ -211,27 +226,39 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 		}
 		this.getFileTransfer(fileTimestamp).accepted = true;
 		this.fileList.updateUI();
-		this.messageTextArea.setText(this.messageTextArea.getText() + "File transfert accepted . " + "\n");
+		this.messageTextArea.append("File transfert accepted . " + "\n");
 		this.inputTextArea.setText("");
 	}
 	
+	/**
+	 * Demande le rejet d'un transfert de fichier estampillé par fileTimestamp.
+	 * @param fileTimestamp timestamp du fichier à rejeter.
+	 */
 	private void reject(int fileTimestamp)
 	{
 		for(User usr : this.getUsers())
 		{
 			this.notifyRejectFileRequest(usr, fileTimestamp);
 		}
-		this.getFileTransfer(fileTimestamp).accepted = true;
+		
+		// Statut du transfert : refusé et terminé.
+		this.getFileTransfer(fileTimestamp).accepted = false;
+		this.getFileTransfer(fileTimestamp).ended = true;
+		
 		this.fileList.updateUI();
-		this.messageTextArea.setText(this.messageTextArea.getText() + "File transfert accepted . " + "\n");
+		this.messageTextArea.append("File transfert accepted . " + "\n");
 		this.inputTextArea.setText("");
 	}
 	
+	/**
+	 * Demande l'envoi du fichier dont le nom est donné en paramètre.
+	 * @param filename
+	 */
 	private void sendFile(String filename)
 	{
 		if(this.getUsers().size() > 1)
 		{
-			this.messageTextArea.setText("[Error] Cannot send file to more than one user. \n");
+			this.messageTextArea.append("[Error] Cannot send file to more than one user. \n");
 			this.inputTextArea.setText("");
 			return;
 		}
@@ -240,17 +267,21 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 		{
 			notifySendFileRequest(usr, filename);
 		}
-		this.messageTextArea.setText(this.messageTextArea.getText() + "File transfert request sent. " + "\n");
+		this.messageTextArea.append("File transfert request sent. " + "\n");
 		this.inputTextArea.setText("");
 	}
 	
-	private void sendMessage()
+	/**
+	 * Demande l'envoi du message donné aux utilisateurs de la conversation.
+	 * @param message
+	 */
+	private void sendMessage(String message)
 	{
 		for(User usr : this.getUsers())
 		{
-			notifySendMessage(usr, this.inputTextArea.getText());
+			notifySendMessage(usr, message);
 		}
-		this.messageTextArea.setText(this.messageTextArea.getText() + "me says : " + this.inputTextArea.getText() + "\n");
+		this.messageTextArea.setText(this.messageTextArea.getText() + "me says : " + message + "\n");
 		this.inputTextArea.setText("");	
 	}
 	
@@ -272,7 +303,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 					}
 					else if(text.startsWith("\\accept"))
 					{
-						text = text.replaceFirst("\\\\refuse", "").trim();
+						text = text.replaceFirst("\\\\accept", "").trim();
 						int timestamp;
 						try
 						{
@@ -280,16 +311,16 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 						}
 						catch(NumberFormatException ex)
 						{
-							this.messageTextArea.setText(this.messageTextArea.getText() + "Bad file id. " + "\n");
+							this.messageTextArea.append("Bad file id. " + "\n");
 							this.inputTextArea.setText("");
 							return;
 						}
 						accept(timestamp);
 						e.consume();
 					}
-					else if(text.startsWith("\\refuse"))
+					else if(text.startsWith("\\reject"))
 					{
-						text = text.replaceFirst("\\\\refuse", "").trim();
+						text = text.replaceFirst("\\\\reject", "").trim();
 						int timestamp;
 						try
 						{
@@ -297,7 +328,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 						}
 						catch(NumberFormatException ex)
 						{
-							this.messageTextArea.setText(this.messageTextArea.getText() + "Bad file id. " + "\n");
+							this.messageTextArea.append("Bad file id. " + "\n");
 							this.inputTextArea.setText("");
 							return;
 						}
@@ -307,7 +338,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 					else
 					{
 						// Send message.
-						sendMessage();
+						sendMessage(this.inputTextArea.getText());
 						e.consume();
 					}
 

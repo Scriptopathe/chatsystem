@@ -18,7 +18,7 @@ import java.util.List;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 
-import chatsystem.controler.GuiListener;
+import chatsystem.controler.UIListener;
 import chatsystem.controler.MainController;
 import chatsystem.controler.MainControllerListener;
 import chatsystem.model.User;
@@ -31,7 +31,7 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	private JButton createConversationButton;
 	private JList<ConversationFrame> conversationsList;
 	private List<ConversationFrame> internalConversationsList;
-	private List<GuiListener> listeners;
+	private List<UIListener> listeners;
 	private JMenuItem mntmDisconnect;
 	private MainController mainController;
 	private ConnectionFrame connectionFrame;
@@ -51,7 +51,7 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		connectedUserListModel = new UserListModel();
 		internalConversationsList = new ArrayList<ConversationFrame>();
 		mainController = ctrl;
-		listeners = new ArrayList<GuiListener>();
+		listeners = new ArrayList<UIListener>();
 		connectionFrame = connect;
 		
 		ctrl.addListener(this);
@@ -241,16 +241,16 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	 * --------------------------------------------------------------------- */
 	
 	private void notifyConnect(String username) {
-		for(GuiListener l : listeners) l.onConnect(username);
+		for(UIListener l : listeners) l.onConnect(username);
 	}
 	private void notifyDisconnect() {
-		for(GuiListener l : listeners) l.onDisconnect();
+		for(UIListener l : listeners) l.onDisconnect();
 	}
 	private void notifySendMessage(User usr, String message) {
-		for(GuiListener l : listeners) l.onSendMessage(usr, message);
+		for(UIListener l : listeners) l.onSendMessage(usr, message);
 	}
 	
-	public void addListener(GuiListener l) { listeners.add(l); }
+	public void addListener(UIListener l) { listeners.add(l); }
 
 
 	/* ------------------------------------------------------------------------
