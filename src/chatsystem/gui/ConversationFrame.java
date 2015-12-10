@@ -177,10 +177,8 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	private void updateFileList()
 	{
 		SwingUtilities.invokeLater(new Runnable() {
-		    public void run() {
-		        //ConversationFrame.this.fileList.revalidate();
-		        // ConversationFrame.this.fileList.repaint();
-		        //ConversationFrame.this.fileList.updateUI();
+		    public void run() 
+		    {
 		    	ConversationFrame.this.fileList.refresh();
 		    }
 		});
@@ -277,14 +275,21 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	 */
 	private synchronized void accept(int fileTimestamp)
 	{
-		for(User usr : this.getUsers())
+		if(getFileTransfer(fileTimestamp) == null)
 		{
-			notifyAcceptFileRequest(usr, fileTimestamp);
+			this.addMessage(null, "Error : no such file to accept (ID = " + fileTimestamp + ").");
 		}
-		
-		this.addMessage(this.getUsers().get(0), " has accepted your file : " + getFileTransfer(fileTimestamp).filename);
-		this.markAccepted(fileTimestamp, true);
-		this.updateFileList();
+		else
+		{
+			for(User usr : this.getUsers())
+			{
+				notifyAcceptFileRequest(usr, fileTimestamp);
+			}
+			
+			this.addMessage(this.getUsers().get(0), " has accepted your file : " + getFileTransfer(fileTimestamp).filename);
+			this.markAccepted(fileTimestamp, true);
+			this.updateFileList();
+		}
 		this.inputTextArea.setText("");
 	}
 	

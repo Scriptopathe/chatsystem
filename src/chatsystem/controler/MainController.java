@@ -296,6 +296,13 @@ public class MainController implements UIListener
 		try 
 		{
 			final FileRequestMessage request = this.incomingFileRequests.get(fileTimestamp);
+			
+			if(request == null)
+			{
+				notifyLog("Bad timestamp.", true);
+				return;
+			}
+			
 			netControler.sendMessage(usr.getIpaddr(), new FileRequestResponseMessage(accept, fileTimestamp));
 			
 			if(accept)

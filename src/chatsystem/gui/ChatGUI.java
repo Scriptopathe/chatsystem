@@ -136,19 +136,18 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		}
 	}
 	
-	private void connect()
+	private void createConversation(List<User> users, final boolean visible)
 	{
-		List<User> connectedUsers = this.connectedUserList.getSelectedValuesList();
 		ConversationFrame c = null;
 		for(ConversationFrame conv : this.internalConversationsList)
 		{
 			boolean isOK = true;
 			// On vérifie que la conversation n'existe pas déja.
-			if(connectedUsers.size() == conv.getUsers().size())
+			if(users.size() == conv.getUsers().size())
 			{
 				for(User user : conv.getUsers())
 				{
-					if(!connectedUsers.contains(user))
+					if(!users.contains(user))
 					{
 						isOK = false;
 					}
@@ -165,13 +164,13 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		// Si la conversation existe : on l'affiche
 		if(c != null)
 		{
-			c.setVisible(true);
+			c.setVisible(visible);
 		}
 		else
 		{
 			// Sinon on la crée.
 			List<User> adapters = new ArrayList<User>();
-			for(User u : connectedUsers)
+			for(User u : users)
 				adapters.add(u);
 			
 			c = new ConversationFrame(adapters);
@@ -179,6 +178,18 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 			c.addListener(mainController);
 			this.internalConversationsList.add(c);
 			this.conversationsList.updateUI();
+			
+			final ConversationFrame c2 = c;
+			SwingUtilities.invokeLater(new Runnable() {
+				
+				@Override
+				public void run() {
+					// Quick fix for the buggy UI...
+					try { Thread.sleep(10); } catch (InterruptedException e) {}
+					c2.setVisible(visible);
+					
+				}
+			});
 		}
 	}
 	
@@ -186,10 +197,20 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	 * MainControllerListener
 	 * --------------------------------------------------------------------- */
 	@Override
-	public void OnUserConnected(User usr) {
+	public void OnUserConnected(final User usr) {
 		// TODO Auto-generated method stub
 		connectedUserListModel.addElement(usr);
 		connectedUserListModel.update();
+		SwingUtilities.invokeLater(new Runnable() {
+			
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+				List<User> users = new ArrayList<User>();
+				users.add(usr);
+				createConversation(users, false);
+			}
+		});
 	}
 
 	@Override
@@ -211,7 +232,11 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	}
 	@Override
 	public void OnMessageReceived(User usr, String textMessage) {
-		// TODO si on veut afficher un truc
+		for(int i = 0; i < this.conversationsList.getModel().getSize(); i++)
+		{
+			if(this.conversationsList.getModel().getElementAt(i).getUsers().contains(usr))
+				this.conversationsList.getModel().getElementAt(i).setVisible(true);
+		}
 	}
 
 	@Override
@@ -266,7 +291,7 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		}
 		else if(e.getSource() == this.createConversationButton)
 		{
-			this.connect();
+			this.createConversation(this.connectedUserList.getSelectedValuesList(), true);
 		}
 	}
 
