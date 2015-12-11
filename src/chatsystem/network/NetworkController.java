@@ -98,7 +98,7 @@ public class NetworkController implements UDPReceiverListener
 	{
 		if(VERBOSE)
 			System.out.println("[Network] Received message " + message);
-		
+
 		Message msg = Message.createFromJSON(message);
 		mainController.processMessage(source, msg);
 	}

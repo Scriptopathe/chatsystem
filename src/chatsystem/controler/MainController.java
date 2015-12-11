@@ -66,16 +66,27 @@ public class MainController implements UIListener
 	 */
 	private void processHelloMessage(InetAddress srcAddr, HelloMessage hellom)
 	{
-		User usr = new User(hellom.getNickname(), srcAddr);
+		User usr = User.create(hellom.getNickname(), srcAddr);
+		
 		if(getUserList().getUserByIP(usr.getIpaddr()) != null)
 		{
-			notifyLog("[Error] Conflicting IP address, ABORT MISSION.", true);
+			notifyLog("Renamed user " + usr.getNickname() + " to " + hellom.getNickname() + ".", false);
+			usr.setNickname(hellom.getNickname());
 			return;
+			/*if(usr.getNickname().equals(nickname))
+			{
+				usr.setNickname("@echo");
+			}
+			*/
+		}
+		else
+		{
+			getUserList().addUser(usr);
+			notifyLog("User " + usr + " added.", false);
 		}
 		
+		
 		// Enregistre l'utilisateur.
-		getUserList().addUser(usr);
-		notifyLog("User " + usr + " added.", false);
 		notifyUserConnected(usr);
 		
 		// On répond si besoin.
@@ -198,7 +209,6 @@ public class MainController implements UIListener
 		if(msg instanceof HelloMessage)
 		{
 			this.processHelloMessage(srcAddr, (HelloMessage)msg);
-
 		}
 		else if(msg instanceof ByeMessage)
 		{
@@ -404,17 +414,20 @@ public class MainController implements UIListener
 	 * Gui Listener
 	 * --------------------------------------------------------------------- */
 	@Override
-	public void onConnect(String username) {
+	public void onConnect(String username) 
+	{
 		this.connect(username);
 	}
 
 	@Override
-	public void onDisconnect() {
+	public void onDisconnect() 
+	{
 		this.disconnect();
 	}
 
 	@Override
-	public void onSendMessage(User usr, String message) {
+	public void onSendMessage(User usr, String message)
+	{
 		this.sendTextMessage(usr, message);
 	}
 	
@@ -432,7 +445,8 @@ public class MainController implements UIListener
 
 
 	@Override
-	public void onRejectFileRequest(User usr, int fileTimestamp) {
+	public void onRejectFileRequest(User usr, int fileTimestamp) 
+	{
 		this.sendFileRequestResponse(usr, fileTimestamp, false);
 	}
 }

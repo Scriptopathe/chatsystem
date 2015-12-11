@@ -65,7 +65,8 @@ public class ConnectionFrame extends JFrame implements ActionListener, KeyListen
 			@Override
 			public void OnFileRequestResponse(User usr, String filename, int timestamp,
 					boolean accepted) {
-				// TODO Auto-generated method stub
+
+				System.out.println("User " + usr + " sent file request response.");
 				
 			}
 			@Override

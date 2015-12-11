@@ -237,10 +237,9 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	@Override
 	public synchronized void OnFileRequestResponse(User usr, String filename, int timestamp, boolean accepted) 
 	{
-		System.out.println("Accepted !!!");
 		if(!this.getUsers().contains(usr))
 			return;
-		
+		System.out.println("Accepted from " + usr);
 		this.markAccepted(timestamp, accepted);
 		this.updateFileList();
 	}

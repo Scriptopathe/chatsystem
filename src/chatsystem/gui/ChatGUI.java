@@ -12,6 +12,8 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,6 +21,7 @@ import javax.swing.*;
 import javax.swing.border.TitledBorder;
 
 import chatsystem.controler.UIListener;
+import chatsystem.messages.HelloMessage;
 import chatsystem.controler.MainController;
 import chatsystem.controler.MainControllerListener;
 import chatsystem.model.User;
@@ -231,12 +234,9 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		
 	}
 	@Override
-	public void OnMessageReceived(User usr, String textMessage) {
-		for(int i = 0; i < this.conversationsList.getModel().getSize(); i++)
-		{
-			if(this.conversationsList.getModel().getElementAt(i).getUsers().contains(usr))
-				this.conversationsList.getModel().getElementAt(i).setVisible(true);
-		}
+	public void OnMessageReceived(User usr, String textMessage) 
+	{
+		
 	}
 
 	@Override
@@ -328,12 +328,5 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		// TODO Auto-generated method stub
 		
 	}
-
-
-
-
-
-
-
 
 }
