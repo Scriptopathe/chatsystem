@@ -20,6 +20,7 @@ import chatsystem.messages.Message;
 public class NetworkController implements UDPReceiverListener
 {	
 	public final static int PORT = 8045;
+	public final static boolean VERBOSE = true;
 	private UDPSender udpSender;
 	private UDPReceiver udpReceiver;
 	private MainController mainController;
@@ -43,17 +44,25 @@ public class NetworkController implements UDPReceiverListener
 	 */
 	public void sendMessage(InetAddress addr, Message msg) throws IOException
 	{
+		if(VERBOSE)
+			System.out.println("[Network] Sent message : " + msg.toJSON());
+		
 		this.udpSender.sendMessage(addr, msg);
 	}
 	
 	/** Envoie le fichier à l'addresse ip addr */
-	public void sendFile(InetAddress addr, String path) throws FileNotFoundException
+	public void sendFile(InetAddress addr, String path, TCPProgressListener listener) throws FileNotFoundException
 	{
-		System.out.println("[NetworkController] Starting sending file " + path);
+		if(VERBOSE)
+			System.out.println("[Network] Starting sending file " + path);
+		
 		FileInputStream stream = new FileInputStream(path);
 		TCPSender sender = new TCPSender(PORT, addr, stream);
+		sender.addListener(listener);
 		sender.start();
-		System.out.println("[NetworkController] Started sending file " + path);
+		
+		if(VERBOSE)
+			System.out.println("[Network] Started sending file " + path);
 	}
 	
 	/**
@@ -87,6 +96,9 @@ public class NetworkController implements UDPReceiverListener
 	 */
 	public void onMessageReceived(InetAddress source, String message) 
 	{
+		if(VERBOSE)
+			System.out.println("[Network] Received message " + message);
+		
 		Message msg = Message.createFromJSON(message);
 		mainController.processMessage(source, msg);
 	}

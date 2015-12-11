@@ -144,24 +144,38 @@ public class MainController implements UIListener
 	 * @param srcAddr
 	 * @param msg
 	 */
-	private void processFileRequestResponseMessage(InetAddress srcAddr, FileRequestResponseMessage msg)
+	private void processFileRequestResponseMessage(InetAddress srcAddr, final FileRequestResponseMessage msg)
 	{
-		User usr = getUserList().getUserByIP(srcAddr);
+		final User usr = getUserList().getUserByIP(srcAddr);
 		if(!msg.isOk())
 		{
 			notifyLog("File transfer " + msg.getTimestamp() + " rejected.", true);
 			this.outgoingFileRequests.remove(msg.getTimestamp());
 			return;
 		}
-		FileRequestMessage acceptedFileRequest = this.outgoingFileRequests.get(msg.getTimestamp());
+		final FileRequestMessage acceptedFileRequest = this.outgoingFileRequests.get(msg.getTimestamp());
 		if(acceptedFileRequest != null)
 		{
 			this.outgoingFileRequests.remove(msg.getTimestamp());
 			try 
 			{
+				final MainController othis = this;
 				notifyLog("Sending file " + acceptedFileRequest.getFileName(), true);
-				this.netControler.sendFile(srcAddr, acceptedFileRequest.getFileName());
-				// TODO suivi du progrès
+				notifyFileTransferResponse(usr, acceptedFileRequest.getFileName(), msg.getTimestamp(), msg.isOk());
+				this.netControler.sendFile(srcAddr, acceptedFileRequest.getFileName(), new TCPProgressListener() {
+					
+					@Override
+					public void onNotifyProgress(InetAddress source, int progress) {
+						// TODO Auto-generated method stub
+						othis.notifyFileTransferProgress(usr, acceptedFileRequest.getFileName(), progress, acceptedFileRequest.getTimestamp());
+					}
+					
+					@Override
+					public void onNotifyEnd(InetAddress source) {
+						// TODO Auto-generated method stub
+						othis.notifyFileTransferEnded(usr, acceptedFileRequest.getFileName(), acceptedFileRequest.getTimestamp());
+					}
+				});
 			} 
 			catch (FileNotFoundException e) 
 			{

@@ -133,6 +133,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 			prompt = userSrc + " says ";
 		
 		messageTextArea.append(prompt + " : " + msg + "\n");
+		messageTextArea.setCaretPosition(messageTextArea.getDocument().getLength());
 	}
 	
 	/**
@@ -193,26 +194,33 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	
 	@Override
 	public synchronized void OnIncomingFileRequest(User usr, String filename, int timestamp) {
-		this.addTransfer(new FileTransfer(true, timestamp, filename));
+		if(this.getUsers().contains(usr))
+			this.addTransfer(new FileTransfer(true, timestamp, filename));
 	}
 	
 	@Override
 	public synchronized void OnOutgoingFileRequest(User usr, String filename, int timestamp) 
 	{
-		this.addTransfer(new FileTransfer(false, timestamp, filename));
+		if(this.getUsers().contains(usr))
+			this.addTransfer(new FileTransfer(false, timestamp, filename));
 	}
 	
 	@Override
 	public synchronized void OnFileTransferEnded(User usr, String filename, int timestamp) 
 	{
-		this.addMessage(usr, "File transfert : " + filename + " complete.");
-		this.markEnded(timestamp);
-		this.updateFileList();
+		if(this.getUsers().contains(usr))
+		{
+			this.addMessage(usr, "File transfert : " + filename + " complete.");
+			this.markEnded(timestamp);
+			this.updateFileList();	
+		}
 	}
 
 	@Override
 	public synchronized void OnFileTransferProgress(User usr, String filename, int progress, int timestamp) 
 	{
+		if(!this.getUsers().contains(usr))
+			return;
 		this.markProgress(timestamp, progress);
 		this.updateFileList();
 	}
@@ -229,6 +237,10 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	@Override
 	public synchronized void OnFileRequestResponse(User usr, String filename, int timestamp, boolean accepted) 
 	{
+		System.out.println("Accepted !!!");
+		if(!this.getUsers().contains(usr))
+			return;
+		
 		this.markAccepted(timestamp, accepted);
 		this.updateFileList();
 	}

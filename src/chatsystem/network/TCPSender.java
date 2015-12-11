@@ -55,6 +55,9 @@ public class TCPSender extends Thread {
 			socket.close();
 			in.close();
 			out.close();
+			
+			if(NetworkController.VERBOSE)
+				System.out.println("[Network] File transfer complete.");
 		} 
 		catch (IOException e) 
 		{
