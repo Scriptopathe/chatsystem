@@ -28,6 +28,7 @@ public class ConnectionFrame extends JFrame implements ActionListener, KeyListen
 	 */
 	public ConnectionFrame(ChatSettings settings) {
 		this.settings = settings;
+		setTitle("Système de chat - connexion");
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 454, 105);

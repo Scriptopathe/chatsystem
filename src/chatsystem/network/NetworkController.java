@@ -67,7 +67,7 @@ public class NetworkController implements UDPReceiverListener
 			System.out.println("[Network] Starting sending file " + path);
 		
 		FileInputStream stream = new FileInputStream(path);
-		TCPSender sender = new TCPSender(PORT, addr, stream);
+		TCPSender sender = new TCPSender(this.outPort, addr, stream);
 		sender.addListener(listener);
 		sender.start();
 		
