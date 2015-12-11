@@ -249,7 +249,7 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	@Override
 	public void OnMessageReceived(User usr, String textMessage) 
 	{
-		
+		conversationsListModel.update();
 	}
 
 	@Override

@@ -147,6 +147,8 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 		{
 			title += usr.getNickname() + " ";
 		}
+		if(this.hasUnreadMessages())
+			title += "(new)";
 		return title;
 	}
 	
@@ -231,6 +233,7 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 		if(this.getUsers().contains(usr))
 		{
 			this.addMessage(usr, textMessage);
+			this.hasUnreadMessages = true;
 		}
 	}
 

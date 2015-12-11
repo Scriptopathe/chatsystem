@@ -117,6 +117,5 @@ public class NetworkController implements UDPReceiverListener
 		this.udpReceiver.dispose();
 		this.udpSender.dispose();
 		this.tcpListener.dispose();
-		
 	}
 }
