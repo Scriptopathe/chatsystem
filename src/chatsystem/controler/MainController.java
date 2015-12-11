@@ -36,15 +36,16 @@ public class MainController implements UIListener
 	/* ------------------------------------------------------------------------
 	 * Constructeur
 	 * ----------------------------------------------------------------------*/
-	public MainController()
+
+	public MainController(ChatSettings settings)
 	{
 		try 
 		{
-			this.netControler = new NetworkController(this);
 			this.userList = new UserList();
 			this.listeners = new ArrayList<MainControllerListener>();
 			this.incomingFileRequests = new HashMap<Integer, FileRequestMessage>();
 			this.outgoingFileRequests = new HashMap<Integer, FileRequestMessage>();
+			this.netControler = new NetworkController(this, settings);
 		}
 		catch (IOException e) 
 		{
@@ -54,6 +55,8 @@ public class MainController implements UIListener
 		}
 		
 	}
+	
+	
 
 	
 	/* ------------------------------------------------------------------------

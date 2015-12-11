@@ -13,6 +13,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.JTextArea;
 import javax.swing.JButton;
 
+import chatsystem.controler.ChatSettings;
 import chatsystem.controler.MainController;
 import chatsystem.controler.MainControllerListener;
 import chatsystem.model.User;
@@ -21,11 +22,12 @@ public class ConnectionFrame extends JFrame implements ActionListener, KeyListen
 
 	private JPanel contentPane;
 	private JTextArea usernameTextarea;
-	
+	private ChatSettings settings;
 	/**
 	 * Create the frame.
 	 */
-	public ConnectionFrame() {
+	public ConnectionFrame(ChatSettings settings) {
+		this.settings = settings;
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 454, 105);
@@ -52,7 +54,7 @@ public class ConnectionFrame extends JFrame implements ActionListener, KeyListen
 	{
 		if(usernameTextarea.getText() == "")
 			return;
-		MainController ctrl1 = new MainController();
+		MainController ctrl1 = new MainController(settings);
 		ChatGUI g = new ChatGUI(ctrl1, this);
 		
 		ctrl1.addListener(new MainControllerListener() {

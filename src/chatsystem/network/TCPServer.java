@@ -12,13 +12,13 @@ import chatsystem.model.UserList;
  * @author scriptopathe
  *
  */
-public class TCPListener extends Thread
+public class TCPServer extends Thread
 {
 	private int sourcePort;
 	private ServerSocket socket;
 	private HashMap<String, Socket> acceptedSockets;
 	
-	public TCPListener(int port) throws IOException
+	public TCPServer(int port) throws IOException
 	{
 		this.sourcePort = port;
 		this.socket = new ServerSocket(port);

@@ -33,9 +33,10 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	private UserListModel connectedUserListModel;
 	private JButton createConversationButton;
 	private JList<ConversationFrame> conversationsList;
-	private List<ConversationFrame> internalConversationsList;
+	private ConversationListModel conversationsListModel;
 	private List<UIListener> listeners;
 	private JMenuItem mntmDisconnect;
+	private JMenuItem mntmAddEcho;
 	private MainController mainController;
 	private ConnectionFrame connectionFrame;
 	
@@ -46,13 +47,21 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	        this.fireContentsChanged(this, 0, this.getSize()-1);
 	    }
 	}
+	class ConversationListModel extends DefaultListModel<ConversationFrame>
+	{
+	    public void update() 
+	    {
+	        this.fireContentsChanged(this, 0, this.getSize()-1);
+	    }
+	}
+	
 	/**
 	 * Create the application.
 	 */
 	public ChatGUI(MainController ctrl, ConnectionFrame connect) 
 	{
 		connectedUserListModel = new UserListModel();
-		internalConversationsList = new ArrayList<ConversationFrame>();
+		conversationsListModel = new ConversationListModel();
 		mainController = ctrl;
 		listeners = new ArrayList<UIListener>();
 		connectionFrame = connect;
@@ -102,10 +111,10 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		conversationsList = new JList<ConversationFrame>();
 		conversationsList.setModel(new AbstractListModel<ConversationFrame>() {
 			public int getSize() {
-				return internalConversationsList.size();
+				return conversationsListModel.size();
 			}
 			public ConversationFrame getElementAt(int index) {
-				return internalConversationsList.get(index);
+				return conversationsListModel.get(index);
 			}
 		});
 		conversationsList.addMouseListener(this);
@@ -123,8 +132,11 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		
 		mntmDisconnect = new JMenuItem("Disconnect");
 		mntmDisconnect.addActionListener(this);
+		mntmAddEcho = new JMenuItem("Add Echo");
+		mntmAddEcho.addActionListener(this);
 		
 		mnFile.add(mntmDisconnect);
+		mnFile.add(mntmAddEcho);
 		frame.setVisible(true);
 	}
 	
@@ -133,17 +145,18 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		notifyDisconnect();
 		this.frame.dispose();
 		this.connectionFrame.setVisible(true);
-		for(ConversationFrame conv : this.internalConversationsList)
+		for(int i = 0; i < this.conversationsListModel.getSize(); i++)
 		{
-			conv.dispose();
+			this.conversationsListModel.get(i).dispose();
 		}
 	}
 	
 	private void createConversation(List<User> users, final boolean visible)
 	{
 		ConversationFrame c = null;
-		for(ConversationFrame conv : this.internalConversationsList)
+		for(int i = 0; i < this.conversationsListModel.getSize(); i++)
 		{
+			ConversationFrame conv = this.conversationsListModel.get(i); 
 			boolean isOK = true;
 			// On vérifie que la conversation n'existe pas déja.
 			if(users.size() == conv.getUsers().size())
@@ -179,7 +192,7 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 			c = new ConversationFrame(adapters);
 			mainController.addListener(c);
 			c.addListener(mainController);
-			this.internalConversationsList.add(c);
+			this.conversationsListModel.addElement(c);
 			this.conversationsList.updateUI();
 			
 			final ConversationFrame c2 = c;
@@ -292,6 +305,13 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		else if(e.getSource() == this.createConversationButton)
 		{
 			this.createConversation(this.connectedUserList.getSelectedValuesList(), true);
+		}
+		else if(e.getSource() == this.mntmAddEcho)
+		{
+			try 
+			{
+				this.mainController.processMessage(InetAddress.getByName("127.0.0.1"), new HelloMessage("@echo", false));
+			} catch (UnknownHostException e1) { e1.printStackTrace(); }
 		}
 	}
 

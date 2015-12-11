@@ -15,7 +15,7 @@ public class TCPReceiver extends Thread{
 	
 	private OutputStream stream;
 	private List<TCPProgressListener> listeners;
-	private TCPListener tcpListener;
+	private TCPServer tcpListener;
 	private InetAddress sourceAddress;
 	
 	/**
@@ -24,7 +24,7 @@ public class TCPReceiver extends Thread{
 	 * @param socket le socket sur lequel lire les données.
 	 * @param stream le stream dans lequel écrire les données lues sur le socket.
 	 */
-	public TCPReceiver(TCPListener listener, InetAddress from, OutputStream stream)
+	public TCPReceiver(TCPServer listener, InetAddress from, OutputStream stream)
 	{
 		this.tcpListener = listener;
 		this.sourceAddress = from;

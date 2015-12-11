@@ -28,11 +28,11 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 	private volatile JPanel contentPane;
 	private volatile JTextArea inputTextArea;
 	private volatile JTextArea messageTextArea;
-	// private volatile JList<FileTransfer> fileList;
 	private volatile FileTransferPanelManager fileList;
 	private volatile List<FileTransfer> fileTransfers;
 	private volatile List<User> userList;
 	private volatile List<UIListener> listeners;
+	private boolean hasUnreadMessages;
 	
 
 	/**
@@ -445,6 +445,20 @@ public class ConversationFrame extends JFrame implements MainControllerListener,
 				return transfer;
 		}
 		return null;
+	}
+	
+	@Override
+	public void setVisible(boolean visible)
+	{
+		super.setVisible(visible);
+		
+		if(visible == true)
+			this.hasUnreadMessages = false;
+	}
+	
+	public boolean hasUnreadMessages()
+	{
+		return this.hasUnreadMessages;
 	}
 	
 	public List<User> getUsers()

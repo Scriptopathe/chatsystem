@@ -3,7 +3,7 @@ package tests;
 import java.net.*;
 import java.io.*;
 
-import chatsystem.network.TCPListener;
+import chatsystem.network.TCPServer;
 import chatsystem.network.TCPReceiver;
 import chatsystem.network.TCPProgressListener;
 import chatsystem.network.TCPSender;
@@ -17,7 +17,7 @@ public class TCPStackTest {
 	{
 		// TODO : delete les socket dans la hashmap
 		final ByteArrayOutputStream out = new ByteArrayOutputStream();
-		TCPListener l = new TCPListener(8045);
+		TCPServer l = new TCPServer(8045);
 		l.start();
 		
 		System.out.println("Creation de l'input stream");

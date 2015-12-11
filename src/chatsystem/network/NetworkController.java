@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import chatsystem.controler.ChatSettings;
 import chatsystem.controler.MainController;
 import chatsystem.messages.FileRequestMessage;
 import chatsystem.messages.Message;
@@ -21,23 +22,32 @@ public class NetworkController implements UDPReceiverListener
 {	
 	public final static int PORT = 8045;
 	public final static boolean VERBOSE = true;
+	
+	/* In and out port : used to be able to run more than 1 client on the same machine */
+	private int inPort;
+	private int outPort;
+	
 	private UDPSender udpSender;
 	private UDPReceiver udpReceiver;
 	private MainController mainController;
-	private TCPListener tcpListener;
+	private TCPServer tcpListener;
 	
-	public NetworkController(MainController ctrl) throws IOException
+	public NetworkController(MainController ctrl, ChatSettings settings) throws IOException
 	{
-		this.udpReceiver = new UDPReceiver(PORT);
-		this.udpSender = new UDPSender(PORT);
-		this.tcpListener = new TCPListener(PORT);
 		this.mainController = ctrl;
+		this.inPort = settings.getInPort() == -1 ? PORT : settings.getInPort();
+		this.outPort = settings.getOutPort() == -1 ? PORT : settings.getOutPort();
+		this.udpReceiver = new UDPReceiver(this.inPort);
+		this.udpSender = new UDPSender(this.outPort);
+		this.tcpListener = new TCPServer(this.inPort);
 		
 		// Démarrage du receiver.
 		this.udpReceiver.start();
 		this.udpReceiver.addListener(this);
 		this.tcpListener.start();
 	}
+	
+
 		
 	/**
 	 * Envoie le message msg à l'adresse ip addr.
