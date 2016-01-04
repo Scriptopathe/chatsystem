@@ -13,6 +13,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.JTextArea;
 import javax.swing.JButton;
 
+import chatsystem.controler.ChatSettings;
 import chatsystem.controler.MainController;
 import chatsystem.controler.MainControllerListener;
 import chatsystem.model.User;
@@ -21,11 +22,13 @@ public class ConnectionFrame extends JFrame implements ActionListener, KeyListen
 
 	private JPanel contentPane;
 	private JTextArea usernameTextarea;
-	
+	private ChatSettings settings;
 	/**
 	 * Create the frame.
 	 */
-	public ConnectionFrame() {
+	public ConnectionFrame(ChatSettings settings) {
+		this.settings = settings;
+		setTitle("Système de chat - connexion");
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 454, 105);
@@ -52,7 +55,7 @@ public class ConnectionFrame extends JFrame implements ActionListener, KeyListen
 	{
 		if(usernameTextarea.getText() == "")
 			return;
-		MainController ctrl1 = new MainController();
+		MainController ctrl1 = new MainController(settings);
 		ChatGUI g = new ChatGUI(ctrl1, this);
 		
 		ctrl1.addListener(new MainControllerListener() {
@@ -62,7 +65,13 @@ public class ConnectionFrame extends JFrame implements ActionListener, KeyListen
 				System.out.println("User " + usr + " disconnected");
 				
 			}
-			
+			@Override
+			public void OnFileRequestResponse(User usr, String filename, int timestamp,
+					boolean accepted) {
+
+				System.out.println("User " + usr + " sent file request response.");
+				
+			}
 			@Override
 			public void OnUserConnected(User usr) {
 				// TODO Auto-generated method stub
@@ -81,18 +90,32 @@ public class ConnectionFrame extends JFrame implements ActionListener, KeyListen
 				// TODO Auto-generated method stub
 				System.out.println("[CtrlLog] " + text);
 			}
-			
+
 			@Override
-			public void OnFileTransferEnded(User usr, String filename) {
+			public void OnIncomingFileRequest(User usr, String filename, int timestamp) {
 				// TODO Auto-generated method stub
 				
 			}
-			
+
 			@Override
-			public void OnFileRequest(User usr, String filename) {
+			public void OnFileTransferEnded(User usr, String filename,
+					int timestamp) {
 				// TODO Auto-generated method stub
 				
 			}
+
+			@Override
+			public void OnFileTransferProgress(User usr, String filename,
+					int progress, int timestamp) {
+				// TODO Auto-generated method stub
+				
+			}
+			@Override
+			public void OnOutgoingFileRequest(User usr, String filename, int timestamp) {
+				// TODO Auto-generated method stub
+				
+			}
+
 		});
 		
 		ctrl1.connect(usernameTextarea.getText());

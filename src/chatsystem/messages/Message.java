@@ -53,12 +53,13 @@ public abstract class Message {
 			break;
 
 		case MESSAGE_TYPE_FILE_REQUEST:
-			msg = new FileRequestMessage(jobj.getString("name"));
+			msg = new FileRequestMessage(jobj.getString("name"), jobj.getInt("timestamp"));
 			break;
 
 		case MESSAGE_TYPE_RESP_REQUEST:
-			msg = new FileRequestResponseMessage(jobj.getBoolean("ok"));
+			msg = new FileRequestResponseMessage(jobj.getBoolean("ok"), jobj.getInt("timestamp"));
 			break;
+			
 		default:
 			throw new NotImplementedException();
 		}

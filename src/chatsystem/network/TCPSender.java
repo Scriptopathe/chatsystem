@@ -2,6 +2,8 @@ package chatsystem.network;
 
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -13,6 +15,7 @@ public class TCPSender extends Thread {
 	private int dstPort;
 	private InetAddress addr;
 	private InputStream stream;
+	private List<TCPProgressListener> listeners;
 	
 	/**
 	 * Crée une nouvelle instance de TCPSender à partir d'une adresse, d'un port et
@@ -26,6 +29,7 @@ public class TCPSender extends Thread {
 		this.dstPort = port;
 		this.addr = addr;
 		this.stream = stream;
+		this.listeners = new ArrayList<TCPProgressListener>();
 	}
 	
 	
@@ -47,14 +51,42 @@ public class TCPSender extends Thread {
 					out.write(buffer, 0, size);
 			}
 			
+			notifyEnd(socket.getInetAddress());
 			socket.close();
 			in.close();
 			out.close();
+			
+			if(NetworkController.VERBOSE)
+				System.out.println("[Network] File transfer complete.");
 		} 
 		catch (IOException e) 
 		{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Ajoute un listener aux évènements de TCPSender.
+	 */
+	public void addListener(TCPProgressListener t)
+	{
+		this.listeners.add(t);
+	}
+	
+	private void notifyProgress(InetAddress source, int progress) 
+	{
+		for(TCPProgressListener l : this.listeners)
+		{
+			l.onNotifyProgress(source, progress);
+		}
+	}
+	
+	private void notifyEnd(InetAddress source) 
+	{
+		for(TCPProgressListener l : this.listeners)
+		{
+			l.onNotifyEnd(source);
 		}
 	}
 }

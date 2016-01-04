@@ -2,7 +2,7 @@ package chatsystem.network;
 
 import java.net.InetAddress;
 
-public interface TCPReceiverListener 
+public interface TCPProgressListener 
 {
 	/**
 	 * Méthode appelée chaque 5% de l'avancement du téléchargement du fichier.

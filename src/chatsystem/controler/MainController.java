@@ -2,9 +2,9 @@ package chatsystem.controler;
 
 import java.io.*;
 import java.net.*;
+import java.security.Timestamp;
 import java.util.*;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-import chatsystem.gui.GuiListener;
 import chatsystem.messages.*;
 import chatsystem.model.*;
 import chatsystem.network.*;
@@ -13,7 +13,7 @@ import chatsystem.network.*;
  * Contrôleur principal de l'application ChatSystem.
  * Il agit entre l'interface graphique et le controleur réseau.
  */
-public class MainController implements GuiListener
+public class MainController implements UIListener
 {
 	/* ------------------------------------------------------------------------
 	 * Variables
@@ -22,18 +22,32 @@ public class MainController implements GuiListener
 	private UserList userList;
 	private String nickname;
 	private List<MainControllerListener> listeners;
+	/**
+	 * Contient les requêtes de transfert fichier entrantes, indexées par l'identifiant (timestamp)
+	 * du fichier.
+	 */
+	private HashMap<Integer, FileRequestMessage> incomingFileRequests;
+	/**
+	 * Contient les requêtes de transfert fichier sortantes, indexées par l'identifiant (timestamp)
+	 * du fichier.
+	 */
+	private HashMap<Integer, FileRequestMessage> outgoingFileRequests;
+	
 	/* ------------------------------------------------------------------------
 	 * Constructeur
 	 * ----------------------------------------------------------------------*/
-	public MainController()
+
+	public MainController(ChatSettings settings)
 	{
 		try 
 		{
-			this.netControler = new NetworkController(this);
 			this.userList = new UserList();
 			this.listeners = new ArrayList<MainControllerListener>();
+			this.incomingFileRequests = new HashMap<Integer, FileRequestMessage>();
+			this.outgoingFileRequests = new HashMap<Integer, FileRequestMessage>();
+			this.netControler = new NetworkController(this, settings);
 		}
-		catch (SocketException e) 
+		catch (IOException e) 
 		{
 			// TODO Une belle message box + exit !!!
 			e.printStackTrace();
@@ -41,81 +55,190 @@ public class MainController implements GuiListener
 		}
 		
 	}
+	
+	
 
 	
 	/* ------------------------------------------------------------------------
 	 * Messages from NI
 	 * ----------------------------------------------------------------------*/
+	/**
+	 * Traite un message Hello entrant.
+	 * @param srcAddr
+	 * @param msg
+	 */
+	private void processHelloMessage(InetAddress srcAddr, HelloMessage hellom)
+	{
+		User usr = User.create(hellom.getNickname(), srcAddr);
+		
+		if(getUserList().getUserByIP(usr.getIpaddr()) != null)
+		{
+			notifyLog("Renamed user " + usr.getNickname() + " to " + hellom.getNickname() + ".", false);
+			usr.setNickname(hellom.getNickname());
+			return;
+			/*if(usr.getNickname().equals(nickname))
+			{
+				usr.setNickname("@echo");
+			}
+			*/
+		}
+		else
+		{
+			getUserList().addUser(usr);
+			notifyLog("User " + usr + " added.", false);
+		}
+		
+		
+		// Enregistre l'utilisateur.
+		notifyUserConnected(usr);
+		
+		// On répond si besoin.
+		if(hellom.getReqReply())
+		{
+			try 
+			{
+				this.netControler.sendMessage(usr.getIpaddr(), new HelloMessage(nickname, false));
+			}
+			catch (IOException e) 
+			{
+				notifyLog("[Error] Sending hello back to " + usr + ": Unable to send hello back.", true);
+				e.printStackTrace();
+			}
+		}
+	}
+	/**
+	 * Traite un message Bye entrant.
+	 * @param srcAddr
+	 * @param msg
+	 */
+	private void processByeMessage(InetAddress srcAddr, ByeMessage msg)
+	{
+		User usr = getUserList().getUserByIP(srcAddr);
+		if(usr == null)
+		{
+			notifyLog("[Error] Trying to delete User @" + srcAddr + ": user does not exist.", true);
+			return;
+		}
+		// Déconnexion
+		notifyLog("User " + usr + " deleted.", false);
+		getUserList().removeUser(getUserList().getUserByIP(srcAddr));
+		notifyUserDisonnected(usr);
+	}
+	/**
+	 * Traite un message texte entrant.
+	 * @param srcAddr
+	 * @param msg
+	 */
+	private void processTextMessage(InetAddress srcAddr, TextMessage msg)
+	{
+		User usr = getUserList().getUserByIP(srcAddr);
+		if(usr == null)
+		{
+			notifyLog("[Error] Received message from User @" + srcAddr + ": user does not exist.", true);
+			return;
+		}
+		notifyLog("Message received from " + usr + " : " + msg.toJSON(), false);
+		notifyMessageReceived(usr, msg.getMessage());
+	}
+	/**
+	 * Traite un message de requête d'envoi de fichier.
+	 * @param srcAddr
+	 * @param msg
+	 */
+	private void processFileRequestMessage(InetAddress srcAddr, FileRequestMessage msg)
+	{
+		User usr = getUserList().getUserByIP(srcAddr);
+		notifyLog("Message received from " + usr + " : " + msg.toJSON(), false);
+		notifyIncomingFileRequest(usr, msg.getFileName(), msg.getTimestamp());
+		this.incomingFileRequests.put(msg.getTimestamp(), msg);
+	}
+	
+	/**
+	 * Traite un message de réponse à une requête d'envoi de fichier.
+	 * @param srcAddr
+	 * @param msg
+	 */
+	private void processFileRequestResponseMessage(InetAddress srcAddr, final FileRequestResponseMessage msg)
+	{
+		final User usr = getUserList().getUserByIP(srcAddr);
+		if(!msg.isOk())
+		{
+			notifyLog("File transfer " + msg.getTimestamp() + " rejected.", true);
+			this.outgoingFileRequests.remove(msg.getTimestamp());
+			return;
+		}
+		final FileRequestMessage acceptedFileRequest = this.outgoingFileRequests.get(msg.getTimestamp());
+		if(acceptedFileRequest != null)
+		{
+			this.outgoingFileRequests.remove(msg.getTimestamp());
+			try 
+			{
+				final MainController othis = this;
+				notifyLog("Sending file " + acceptedFileRequest.getFileName(), true);
+				notifyFileTransferResponse(usr, acceptedFileRequest.getFileName(), msg.getTimestamp(), msg.isOk());
+				this.netControler.sendFile(srcAddr, acceptedFileRequest.getFileName(), new TCPProgressListener() {
+					
+					@Override
+					public void onNotifyProgress(InetAddress source, int progress) {
+						// TODO Auto-generated method stub
+						othis.notifyFileTransferProgress(usr, acceptedFileRequest.getFileName(), progress, acceptedFileRequest.getTimestamp());
+					}
+					
+					@Override
+					public void onNotifyEnd(InetAddress source) {
+						// TODO Auto-generated method stub
+						othis.notifyFileTransferEnded(usr, acceptedFileRequest.getFileName(), acceptedFileRequest.getTimestamp());
+					}
+				});
+			} 
+			catch (FileNotFoundException e) 
+			{
+				e.printStackTrace();
+			}
+		}
+		else
+		{
+			notifyLog("[Error] Received invalid FileRequestResponseMessage.", true);
+		}
+	}
+	
+	/**
+	 * Traite le message entrant passé en paramètre.
+	 * @param srcAddr addresse de l'émetteur du message.
+	 * @param msg message envoyé par l'émetteur.
+	 */
 	public void processMessage(InetAddress srcAddr, Message msg)
 	{
 		if(msg instanceof HelloMessage)
 		{
-			HelloMessage hellom = (HelloMessage)msg;
-			User usr = new User(hellom.getNickname(), srcAddr);
-			if(getUserList().getUserByIP(usr.getIpaddr()) != null)
-			{
-				notifyLog("[Error] Conflicting IP address, ABORT MISSION.", true);
-				return;
-			}
-			
-			// Enregistre l'utilisateur.
-			getUserList().addUser(usr);
-			notifyLog("User " + usr + " added.", false);
-			notifyUserConnected(usr);
-			
-			// On répond si besoin.
-			if(hellom.getReqReply())
-			{
-				try 
-				{
-					this.netControler.sendMessage(usr.getIpaddr(), new HelloMessage(nickname, false));
-				} 
-				catch (IOException e) 
-				{
-					notifyLog("[Error] Sending hello back to " + usr + ": Unable to send hello back.", true);
-					e.printStackTrace();
-				}
-			}
+			this.processHelloMessage(srcAddr, (HelloMessage)msg);
 		}
 		else if(msg instanceof ByeMessage)
 		{
-			User usr = getUserList().getUserByIP(srcAddr);
-			if(usr == null)
-			{
-				notifyLog("[Error] Trying to delete User @" + srcAddr + ": user does not exist.", true);
-				return;
-			}
-			// Déconnexion
-			notifyLog("User " + usr + " deleted.", false);
-			getUserList().removeUser(getUserList().getUserByIP(srcAddr));
-			notifyUserDisonnected(usr);
+			this.processByeMessage(srcAddr, (ByeMessage)msg);
 		}
 		else if(msg instanceof TextMessage)
 		{
-			User usr = getUserList().getUserByIP(srcAddr);
-			if(usr == null)
-			{
-				notifyLog("[Error] Received message from User @" + srcAddr + ": user does not exist.", true);
-				return;
-			}
-			notifyLog("Message received from " + usr + " : " + msg.toJSON(), false);
-			notifyMessageReceived(usr, ((TextMessage)msg).getMessage());
+			this.processTextMessage(srcAddr, (TextMessage)msg);
 		}
 		else if(msg instanceof FileRequestMessage)
 		{
-			FileRequestMessage frm = (FileRequestMessage)msg;
-			
-			throw new NotImplementedException();
+			this.processFileRequestMessage(srcAddr, (FileRequestMessage)msg);
+
 		}
 		else if(msg instanceof FileRequestResponseMessage)
 		{
-			throw new NotImplementedException();
+			this.processFileRequestResponseMessage(srcAddr, (FileRequestResponseMessage)msg);
 		}
 	}
 	
 	/* ------------------------------------------------------------------------
 	 * Messages from user
 	 * ----------------------------------------------------------------------*/
+	/**
+	 * Connecte l'utilisateur au Chatsystem avec le nickname donné.
+	 * @param nickname
+	 */
 	public void connect(String nickname)
 	{
 		try 
@@ -130,6 +253,11 @@ public class MainController implements GuiListener
 		}
 	}
 	
+	/**
+	 * Envoie un message texte à l'utilisateur donné.
+	 * @param usr utilisateur auquel envoyer le message
+	 * @param message message à envoyer
+	 */
 	public void sendTextMessage(User usr, String message)
 	{
 		try 
@@ -144,6 +272,9 @@ public class MainController implements GuiListener
 		}
 	}
 	
+	/**
+	 * Déconnecte l'utilisateur du ChatSystem.
+	 */
 	public void disconnect()
 	{
 		try 
@@ -154,10 +285,83 @@ public class MainController implements GuiListener
 		catch (IOException e) 
 		{
 			// TODO Auto-generated catch block
-			System.out.println("Unable to bye message");
+			System.out.println("Unable to send bye message.");
 			e.printStackTrace();
 		}
 	}
+	
+	/**
+	 * Envoie une requête de transfert de fichier à l'utilisateur donné.
+	 * @param usr utilisateur auquel envoyer la requête.
+	 * @param path chemin d'accès du fichier à envoyer.
+	 */
+	public void sendFileRequest(User usr, String path)
+	{
+		int timestamp = (int)System.currentTimeMillis();
+		FileRequestMessage msg = new FileRequestMessage(path, timestamp);
+		try 
+		{
+			netControler.sendMessage(usr.getIpaddr(), msg);
+			this.outgoingFileRequests.put(timestamp, msg);
+			this.notifyOutgoingFileRequest(usr, path, timestamp);
+		}
+		catch (IOException e) 
+		{
+			System.out.println("Unable to send file request.");
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Envoie une réponse à une requête d'envoi de fichier.
+	 * @param usr utilisateur auquel envoyer la réponse.
+	 * @param fileTimestamp identifiant (timestamp) du fichier à envoyer.
+	 * @param accept si true : accepte le fichier, si false : refuse le fichier.
+	 */
+	public void sendFileRequestResponse(final User usr, final int fileTimestamp, final boolean accept)
+	{
+		try 
+		{
+			final FileRequestMessage request = this.incomingFileRequests.get(fileTimestamp);
+			
+			if(request == null)
+			{
+				notifyLog("Bad timestamp.", true);
+				return;
+			}
+			
+			netControler.sendMessage(usr.getIpaddr(), new FileRequestResponseMessage(accept, fileTimestamp));
+			
+			if(accept)
+			{
+				final MainController othis = this;
+				netControler.receiveFile(usr.getIpaddr(), new FileRequestMessage(request.getFileName(), fileTimestamp), new TCPProgressListener() 
+				{
+					@Override
+					public void onNotifyProgress(InetAddress source, int progress) {
+						// TODO Auto-generated method stub
+						othis.notifyFileTransferProgress(usr, request.getFileName(), progress, fileTimestamp);
+					}
+					
+					@Override
+					public void onNotifyEnd(InetAddress source) {
+						// TODO Auto-generated method stub
+						othis.notifyFileTransferEnded(usr, request.getFileName(), fileTimestamp);
+					}
+				});
+			}
+
+			this.notifyFileTransferResponse(usr, this.incomingFileRequests.get(fileTimestamp).getFileName(), fileTimestamp, accept);
+			this.incomingFileRequests.remove(fileTimestamp);
+			
+		} 
+		catch (IOException e)
+		{
+			System.out.println("Unable to accept file request.");
+			e.printStackTrace();
+		}
+	}
+	
 	/* ------------------------------------------------------------------------
 	 * Getters / Setters
 	 * ----------------------------------------------------------------------*/
@@ -187,11 +391,20 @@ public class MainController implements GuiListener
 	private void notifyMessageReceived(User usr, String textMessage) {
 		for(MainControllerListener l : listeners) l.OnMessageReceived(usr, textMessage);
 	}
-	private void notifyFileRequest(User usr, String filename) {
-		for(MainControllerListener l : listeners) l.OnFileRequest(usr, filename);
+	private void notifyIncomingFileRequest(User usr, String filename, int timestamp) {
+		for(MainControllerListener l : listeners) l.OnIncomingFileRequest(usr, filename, timestamp);
 	}
-	private void notifyFileTransferEnded(User usr, String filename) {
-		for(MainControllerListener l : listeners) l.OnFileTransferEnded(usr, filename);
+	private void notifyOutgoingFileRequest(User usr, String filename, int timestamp) {
+		for(MainControllerListener l : listeners) l.OnOutgoingFileRequest(usr, filename, timestamp);
+	}
+	private void notifyFileTransferEnded(User usr, String filename, int timestamp) {
+		for(MainControllerListener l : listeners) l.OnFileTransferEnded(usr, filename, timestamp);
+	}
+	private void notifyFileTransferProgress(User usr, String filename, int progress, int timestamp) {
+		for(MainControllerListener l : listeners) l.OnFileTransferProgress(usr, filename, progress, timestamp);
+	}	
+	private void notifyFileTransferResponse(User usr, String filename, int timestamp, boolean accepted) {
+		for(MainControllerListener l : listeners) l.OnFileRequestResponse(usr, filename, timestamp, accepted);
 	}
 	private void notifyLog(String text, boolean isError) {
 		for(MainControllerListener l : listeners) l.OnLog(text, isError);
@@ -204,18 +417,39 @@ public class MainController implements GuiListener
 	 * Gui Listener
 	 * --------------------------------------------------------------------- */
 	@Override
-	public void onConnect(String username) {
+	public void onConnect(String username) 
+	{
 		this.connect(username);
 	}
 
-
 	@Override
-	public void onDisconnect() {
+	public void onDisconnect() 
+	{
 		this.disconnect();
 	}
 
 	@Override
-	public void onSendMessage(User usr, String message) {
+	public void onSendMessage(User usr, String message)
+	{
 		this.sendTextMessage(usr, message);
+	}
+	
+	@Override
+	public void onSendFileRequest(User usr, String path) 
+	{
+		this.sendFileRequest(usr, path);
+	}
+	
+	@Override
+	public void onAcceptFileRequest(User usr, int fileTimestamp)
+	{
+		this.sendFileRequestResponse(usr, fileTimestamp, true);
+	}
+
+
+	@Override
+	public void onRejectFileRequest(User usr, int fileTimestamp) 
+	{
+		this.sendFileRequestResponse(usr, fileTimestamp, false);
 	}
 }

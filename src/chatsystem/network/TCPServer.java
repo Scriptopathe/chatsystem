@@ -12,13 +12,13 @@ import chatsystem.model.UserList;
  * @author scriptopathe
  *
  */
-public class TCPListener extends Thread
+public class TCPServer extends Thread
 {
 	private int sourcePort;
 	private ServerSocket socket;
 	private HashMap<String, Socket> acceptedSockets;
 	
-	public TCPListener(int port) throws IOException
+	public TCPServer(int port) throws IOException
 	{
 		this.sourcePort = port;
 		this.socket = new ServerSocket(port);
@@ -40,11 +40,16 @@ public class TCPListener extends Thread
 	 * @return le socket correspondant à l'IP source donnée s'il a été enregistré
 	 * null sinon.
 	 */
-	public Socket getSocket(InetAddress addr)
+	public Socket popSocket(InetAddress addr)
 	{
 		String addrname = toId(addr);
 		if(acceptedSockets.containsKey(addrname))
-			return acceptedSockets.get(addrname);
+		{
+			Socket sock = acceptedSockets.get(addrname);
+			acceptedSockets.remove(addrname);
+			return sock;
+			
+		}
 		return null;
 	}
 	
@@ -52,7 +57,7 @@ public class TCPListener extends Thread
 	public void run()
 	{
 		while(true)
-		{
+		{	
 			try 
 			{
 				Socket sock = this.socket.accept();
@@ -60,9 +65,20 @@ public class TCPListener extends Thread
 			}
 			catch (IOException e) 
 			{
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				break;
 			}
+		}
+	}
+
+	public void dispose() {
+		try 
+		{
+			this.socket.close();
+		} 
+		catch (IOException e) 
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	

@@ -3,9 +3,9 @@ package tests;
 import java.net.*;
 import java.io.*;
 
-import chatsystem.network.TCPListener;
+import chatsystem.network.TCPServer;
 import chatsystem.network.TCPReceiver;
-import chatsystem.network.TCPReceiverListener;
+import chatsystem.network.TCPProgressListener;
 import chatsystem.network.TCPSender;
 
 
@@ -17,7 +17,7 @@ public class TCPStackTest {
 	{
 		// TODO : delete les socket dans la hashmap
 		final ByteArrayOutputStream out = new ByteArrayOutputStream();
-		TCPListener l = new TCPListener(8045);
+		TCPServer l = new TCPServer(8045);
 		l.start();
 		
 		System.out.println("Creation de l'input stream");
@@ -26,16 +26,15 @@ public class TCPStackTest {
 		s.start();
 
 		System.out.println("Réception du receiver");
-		while(l.getSocket(Inet4Address.getByName("localhost")) == null) { }
+		while(l.popSocket(Inet4Address.getByName("localhost")) == null) { }
 
 		System.out.println("Creation du socket receiver");
 		System.out.println("Coucou Laura et Josué ! :)");
 		
-		Socket sock = l.getSocket(Inet4Address.getByName("localhost"));
-		TCPReceiver recv = new TCPReceiver(sock, out);
+		TCPReceiver recv = new TCPReceiver(l, Inet4Address.getByName("localhost") , out);
 		
 		// Pseudo observer
-		recv.addListeners(new TCPReceiverListener() {
+		recv.addListener(new TCPProgressListener() {
 			
 			@Override
 			public void onNotifyProgress(InetAddress source, int progress) {
@@ -44,9 +43,12 @@ public class TCPStackTest {
 			
 			@Override
 			public void onNotifyEnd(InetAddress source) {
-				try {
+				try 
+				{
 					System.out.println(out.toString("UTF-8"));
-				} catch (UnsupportedEncodingException e) {
+				} 
+				catch (UnsupportedEncodingException e) 
+				{
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}

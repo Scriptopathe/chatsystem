@@ -10,12 +10,18 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 
+import chatsystem.controler.UIListener;
+import chatsystem.messages.HelloMessage;
 import chatsystem.controler.MainController;
 import chatsystem.controler.MainControllerListener;
 import chatsystem.model.User;
@@ -24,24 +30,40 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 {
 	private JFrame frame;
 	private JList<User> connectedUserList;
-	private List<User> internalUserList;
+	private UserListModel connectedUserListModel;
 	private JButton createConversationButton;
-	private JList<ConversationGUI> conversationsList;
-	private List<ConversationGUI> internalConversationsList;
-	private List<GuiListener> listeners;
+	private JList<ConversationFrame> conversationsList;
+	private ConversationListModel conversationsListModel;
+	private List<UIListener> listeners;
 	private JMenuItem mntmDisconnect;
+	private JMenuItem mntmAddEcho;
 	private MainController mainController;
 	private ConnectionFrame connectionFrame;
+	
+	class UserListModel extends DefaultListModel<User>
+	{
+	    public void update() 
+	    {
+	        this.fireContentsChanged(this, 0, this.getSize()-1);
+	    }
+	}
+	class ConversationListModel extends DefaultListModel<ConversationFrame>
+	{
+	    public void update() 
+	    {
+	        this.fireContentsChanged(this, 0, this.getSize()-1);
+	    }
+	}
 	
 	/**
 	 * Create the application.
 	 */
 	public ChatGUI(MainController ctrl, ConnectionFrame connect) 
 	{
-		internalUserList = new ArrayList<User>();
-		internalConversationsList = new ArrayList<ConversationGUI>();
+		connectedUserListModel = new UserListModel();
+		conversationsListModel = new ConversationListModel();
 		mainController = ctrl;
-		listeners = new ArrayList<GuiListener>();
+		listeners = new ArrayList<UIListener>();
 		connectionFrame = connect;
 		
 		ctrl.addListener(this);
@@ -55,8 +77,15 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	private void initialize() {
 		frame = new JFrame();
 		frame.setTitle("Le système de chat !");
-		frame.setBounds(100, 100, 450, 300);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setBounds(100, 100, 450, 300);		
+		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		frame.addWindowListener(new WindowAdapter() {
+	        @Override
+	        public void windowClosing(WindowEvent e) {
+	        	ChatGUI.this.disconnect();
+	        	System.exit(0);
+	        }
+		});
 		frame.getContentPane().setLayout(new BorderLayout(0, 0));
 		
 		JSplitPane splitPane = new JSplitPane();
@@ -64,14 +93,7 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		frame.getContentPane().add(splitPane, BorderLayout.CENTER);
 		
 		connectedUserList = new JList<User>();
-		connectedUserList.setModel(new AbstractListModel<User>() {
-			public int getSize() {
-				return internalUserList.size();
-			}
-			public User getElementAt(int index) {
-				return internalUserList.get(index);
-			}
-		});
+		connectedUserList.setModel(connectedUserListModel);
 		connectedUserList.setBorder(new TitledBorder(null, "", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		splitPane.setLeftComponent(connectedUserList);
 		
@@ -86,13 +108,13 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		splitPane_1.setLeftComponent(createConversationButton);
 		
 		// Liste des conversations.
-		conversationsList = new JList<ConversationGUI>();
-		conversationsList.setModel(new AbstractListModel<ConversationGUI>() {
+		conversationsList = new JList<ConversationFrame>();
+		conversationsList.setModel(new AbstractListModel<ConversationFrame>() {
 			public int getSize() {
-				return internalConversationsList.size();
+				return conversationsListModel.size();
 			}
-			public ConversationGUI getElementAt(int index) {
-				return internalConversationsList.get(index);
+			public ConversationFrame getElementAt(int index) {
+				return conversationsListModel.get(index);
 			}
 		});
 		conversationsList.addMouseListener(this);
@@ -110,40 +132,139 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		
 		mntmDisconnect = new JMenuItem("Disconnect");
 		mntmDisconnect.addActionListener(this);
+		mntmAddEcho = new JMenuItem("Add Echo");
+		mntmAddEcho.addActionListener(this);
 		
 		mnFile.add(mntmDisconnect);
+		mnFile.add(mntmAddEcho);
 		frame.setVisible(true);
 	}
+	
+	private void disconnect()
+	{
+		notifyDisconnect();
+		this.frame.dispose();
+		this.connectionFrame.setVisible(true);
+		for(int i = 0; i < this.conversationsListModel.getSize(); i++)
+		{
+			this.conversationsListModel.get(i).dispose();
+		}
+	}
+	
+	private void createConversation(List<User> users, final boolean visible)
+	{
+		ConversationFrame c = null;
+		for(int i = 0; i < this.conversationsListModel.getSize(); i++)
+		{
+			ConversationFrame conv = this.conversationsListModel.get(i); 
+			boolean isOK = true;
+			// On vérifie que la conversation n'existe pas déja.
+			if(users.size() == conv.getUsers().size())
+			{
+				for(User user : conv.getUsers())
+				{
+					if(!users.contains(user))
+					{
+						isOK = false;
+					}
+				}
+			}
+			else
+				isOK = false;
+			
+			if(isOK)
+				c = conv;
+		}
+		
+		
+		// Si la conversation existe : on l'affiche
+		if(c != null)
+		{
+			c.setVisible(visible);
+		}
+		else
+		{
+			// Sinon on la crée.
+			List<User> adapters = new ArrayList<User>();
+			for(User u : users)
+				adapters.add(u);
+			
+			c = new ConversationFrame(adapters);
+			mainController.addListener(c);
+			c.addListener(mainController);
+			this.conversationsListModel.addElement(c);
+			this.conversationsList.updateUI();
+			
+			final ConversationFrame c2 = c;
+			SwingUtilities.invokeLater(new Runnable() {
+				
+				@Override
+				public void run() {
+					// Quick fix for the buggy UI...
+					try { Thread.sleep(10); } catch (InterruptedException e) {}
+					c2.setVisible(visible);
+					
+				}
+			});
+		}
+	}
+	
 	/* ------------------------------------------------------------------------
 	 * MainControllerListener
 	 * --------------------------------------------------------------------- */
 	@Override
-	public void OnUserConnected(User usr) {
+	public void OnUserConnected(final User usr) {
 		// TODO Auto-generated method stub
-		internalUserList.add(usr);
-		connectedUserList.updateUI();
+		connectedUserListModel.addElement(usr);
+		connectedUserListModel.update();
+		SwingUtilities.invokeLater(new Runnable() {
+			
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+				List<User> users = new ArrayList<User>();
+				users.add(usr);
+				createConversation(users, false);
+			}
+		});
 	}
 
 	@Override
 	public void OnUserDisconnected(User usr) {
 		// TODO Auto-generated method stub
-		internalUserList.remove(usr);
-		connectedUserList.updateUI();
+		connectedUserListModel.removeElement(usr);
+		connectedUserListModel.update();
 	}
-
 	@Override
-	public void OnMessageReceived(User usr, String textMessage) {
-		// TODO si on veut afficher un truc
-	}
-
-	@Override
-	public void OnFileRequest(User usr, String filename) {
+	public void OnOutgoingFileRequest(User usr, String filename, int timestamp) {
 		// TODO Auto-generated method stub
 		
 	}
+	@Override
+	public void OnFileRequestResponse(User usr, String filename, int timestamp,
+			boolean accepted) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void OnMessageReceived(User usr, String textMessage) 
+	{
+		conversationsListModel.update();
+	}
 
 	@Override
-	public void OnFileTransferEnded(User usr, String filename) {
+	public void OnIncomingFileRequest(User usr, String filename, int timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void OnFileTransferProgress(User usr, String filename, int progress,
+			int timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void OnFileTransferEnded(User usr, String filename, int timestamp) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -158,74 +279,39 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 	 * --------------------------------------------------------------------- */
 	
 	private void notifyConnect(String username) {
-		for(GuiListener l : listeners) l.onConnect(username);
+		for(UIListener l : listeners) l.onConnect(username);
 	}
 	private void notifyDisconnect() {
-		for(GuiListener l : listeners) l.onDisconnect();
+		for(UIListener l : listeners) l.onDisconnect();
 	}
 	private void notifySendMessage(User usr, String message) {
-		for(GuiListener l : listeners) l.onSendMessage(usr, message);
+		for(UIListener l : listeners) l.onSendMessage(usr, message);
 	}
 	
-	public void addListener(GuiListener l) { listeners.add(l); }
+	public void addListener(UIListener l) { listeners.add(l); }
 
 
 	/* ------------------------------------------------------------------------
 	 * Action Listener
 	 * --------------------------------------------------------------------- */
+	
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		// TODO Auto-generated method stub
 		if(e.getSource() == this.mntmDisconnect)
 		{
-			notifyDisconnect();
-			this.frame.dispose();
-			this.connectionFrame.setVisible(true);
+			this.disconnect();
 		}
 		else if(e.getSource() == this.createConversationButton)
 		{
-			List<User> connectedUsers = this.connectedUserList.getSelectedValuesList();
-			ConversationGUI c = null;
-			for(ConversationGUI conv : this.internalConversationsList)
+			this.createConversation(this.connectedUserList.getSelectedValuesList(), true);
+		}
+		else if(e.getSource() == this.mntmAddEcho)
+		{
+			try 
 			{
-				boolean isOK = true;
-				// On vérifie que la conversation n'existe pas déja.
-				if(connectedUsers.size() == conv.getUserAdapters().size())
-				{
-					for(UserAdapter userAdapter : conv.getUserAdapters())
-					{
-						if(!connectedUsers.contains(userAdapter.getUser()))
-						{
-							isOK = false;
-						}
-					}
-				}
-				else
-					isOK = false;
-				
-				if(isOK)
-					c = conv;
-			}
-			
-			
-			// Si la conversation existe : on l'affiche
-			if(c != null)
-			{
-				c.setVisible(true);
-			}
-			else
-			{
-				// Sinon on la crée.
-				List<UserAdapter> adapters = new ArrayList<UserAdapter>();
-				for(User u : connectedUsers)
-					adapters.add(new UserAdapter(u));
-				
-				c = new ConversationGUI(adapters);
-				mainController.addListener(c);
-				c.addListener(mainController);
-				this.internalConversationsList.add(c);
-				this.conversationsList.updateUI();
-			}
+				this.mainController.processMessage(InetAddress.getByName("127.0.0.1"), new HelloMessage("@echo", false));
+			} catch (UnknownHostException e1) { e1.printStackTrace(); }
 		}
 	}
 
@@ -262,4 +348,5 @@ public class ChatGUI implements MainControllerListener, ActionListener, MouseLis
 		// TODO Auto-generated method stub
 		
 	}
+
 }
